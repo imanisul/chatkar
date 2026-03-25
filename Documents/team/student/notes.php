@@ -123,9 +123,9 @@ require_once '_nav.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notes | HeyyGuru</title>
-    <link rel="icon" href="../assets/img/favicon_hg.png?v=2.0" type="image/png">
-    <link rel="shortcut icon" href="../assets/img/favicon_hg.png?v=2.0" type="image/png">
-    <link rel="apple-touch-icon" href="../assets/img/favicon_hg.png?v=2.0">
+    <link rel="icon" href="../assets/img/favicon_hg.png?v=3.0" type="image/png">
+    <link rel="shortcut icon" href="../assets/img/favicon_hg.png?v=3.0" type="image/png">
+    <link rel="apple-touch-icon" href="../assets/img/favicon_hg.png?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="student.css?v=1.2">
     <style>
