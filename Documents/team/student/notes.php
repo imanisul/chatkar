@@ -20,10 +20,12 @@ try {
     $classesToSearch = ['_NO_CLASS_'];
 }
 
-// Check if status column exists (do once)
+// Check if status & chapter_id columns exist (do once)
 $hasStatusCol = false;
+$hasChapterCol = false;
 try {
     $hasStatusCol = (bool)$db->query("SHOW COLUMNS FROM notes LIKE 'status'")->fetch();
+    $hasChapterCol = (bool)$db->query("SHOW COLUMNS FROM notes LIKE 'chapter_id'")->fetch();
 } catch (Exception $e2) {}
 
 // Build the status filter fragment once
@@ -55,9 +57,9 @@ try {
     $subjects = [];
 }
 
-// Fetch Chapters for selected subject (no class filtering — show ALL chapters for the subject)
+// Fetch Chapters for selected subject (only if chapter_id exists in notes)
 $chapters = [];
-if ($selSubject) {
+if ($selSubject && $hasChapterCol) {
     try {
         $chSql = "SELECT DISTINCT n.chapter_id, c.chapter_name, c.chapter_order 
                   FROM notes n 
@@ -76,10 +78,15 @@ if ($selSubject) {
 // ── Fetch Notes: When subject is selected, show ALL notes for that subject (no class filter) ──
 $notes = [];
 try {
-    $sql = "SELECT n.*, c.chapter_name, u.name as teacher_name 
-            FROM notes n 
-            LEFT JOIN chapters c ON n.chapter_id = c.id 
-            LEFT JOIN users u ON n.uploaded_by = u.id 
+    $sql = "SELECT n.*";
+    if ($hasChapterCol) {
+        $sql .= ", c.chapter_name";
+    }
+    $sql .= ", u.name as teacher_name FROM notes n ";
+    if ($hasChapterCol) {
+        $sql .= " LEFT JOIN chapters c ON n.chapter_id = c.id ";
+    }
+    $sql .= " LEFT JOIN users u ON n.uploaded_by = u.id 
             WHERE 1=1";
     $params = [];
 
@@ -91,7 +98,7 @@ try {
         $sql .= " AND n.subject_id=?";
         $params[] = $selSubject;
     }
-    if ($selChapter) {
+    if ($selChapter && $hasChapterCol) {
         $sql .= " AND n.chapter_id=?";
         $params[] = $selChapter;
     }
@@ -387,7 +394,7 @@ else: ?>
             // Group notes by Chapter
             $groupedNotes = [];
             foreach ($notes as $n) {
-                $cname = $n['chapter_name'] ?: 'General Resources';
+                $cname = !empty($n['chapter_name']) ? $n['chapter_name'] : 'General Resources';
                 $groupedNotes[$cname][] = $n;
             }
             
