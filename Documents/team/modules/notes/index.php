@@ -258,7 +258,7 @@ require_once '../../includes/header.php';
 </div>
 
 <?php if (empty($notes)): ?>
-<div style="padding:60px 20px; text-align:center; background:rgba(255,255,255,0.6); backdrop-filter:blur(10px); border-radius:20px; border:1px dashed var(--border);">
+<div style="max-width: 600px; margin: 40px auto; padding:60px 20px; text-align:center; background:rgba(255,255,255,0.6); backdrop-filter:blur(10px); border-radius:20px; border:1px dashed var(--border); display: flex; flex-direction: column; align-items: center;">
     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
         <polyline points="14 2 14 8 20 8"></polyline>
