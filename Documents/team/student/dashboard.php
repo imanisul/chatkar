@@ -259,7 +259,7 @@ $recentQuizzes = [];
 $weeklyTimetable = [];
 $liveClass = null;
 $totalSessions = 0;
-$totalDoubts = 0;
+// NOTE: $totalDoubts is already fetched above (line ~161). Do NOT reset it here.
 $answeredDoubts = 0;
 $topSubject = 'Learning';
 $subjectProgress = [];
@@ -433,7 +433,7 @@ try {
     $totalDoubtStmt->execute([$sid]);
     $totalDoubts = (int)$totalDoubtStmt->fetchColumn();
 
-    $ansDoubtStmt = $db->prepare("SELECT COUNT(*) FROM doubt_sessions WHERE student_id=? AND status='Settled'");
+    $ansDoubtStmt = $db->prepare("SELECT COUNT(*) FROM doubt_sessions WHERE student_id=? AND status='Completed'");
     $ansDoubtStmt->execute([$sid]);
     $answeredDoubts = (int)$ansDoubtStmt->fetchColumn();
 

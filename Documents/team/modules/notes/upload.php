@@ -74,7 +74,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_note'])) {
         // Phase 7: Send Notes email notification
         try {
             require_once '../../includes/student_notifications.php';
-            sendClassNotification($db, $class_name, "📄 New Study Material: $title", "New study notes have been uploaded for $subject_id: $title.", 'info', true);
+            sendClassMaterialNotification(
+                $db, 
+                $class_name, 
+                'Notes', 
+                $title, 
+                $subject_id, 
+                $user['name'] ?? 'Teacher', 
+                'https://team.heyyguru.in/student/notes.php', 
+                true
+            );
         } catch (Exception $e) {
             error_log("Notes Notification Exception: " . $e->getMessage());
         }

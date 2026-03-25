@@ -390,6 +390,7 @@ $sc = $subjectColors[$topSubject] ?? ['#f8fafc','#64748b'];
     border-radius: 99px;
     font-size: 14px;
     font-weight: 800;
+}
 /* Premium App List View */
 .doubt-list-container {
     display: flex;
@@ -883,14 +884,15 @@ function setStatus(val) {
         openModal('detailModal');
     }
     function exportCSV() {
-        var rows = [['#', 'Student', 'Class', 'Subject', 'Date', 'Status']];
-        document.querySelectorAll('.doubt-card').forEach(function (c, i) {
-            let name = c.querySelector('.dc-name')?.innerText || '';
-            let cls = c.querySelector('.dc-class')?.innerText || '';
-            let subj = c.querySelector('.dc-subject')?.innerText || '';
-            let dt = c.querySelector('.dc-date')?.innerText || '';
-            let stat = c.querySelector('.dc-status-badge')?.innerText || '';
-            rows.push([i + 1, name, cls, subj, dt, stat]);
+        var rows = [['#', 'Student', 'Class', 'Subject', 'Topic', 'Date', 'Status']];
+        document.querySelectorAll('.dl-row').forEach(function (c, i) {
+            let name = c.querySelector('.dl-name')?.innerText || '';
+            let cls = c.querySelector('.dl-class')?.innerText || '';
+            let subj = c.querySelector('.dl-subject')?.innerText || '';
+            let topic = c.querySelector('.dl-topic')?.innerText || '';
+            let dt = c.querySelector('.dl-date')?.innerText || '';
+            let stat = c.querySelector('.badge')?.innerText || '';
+            rows.push([i + 1, name, cls, subj, topic, dt, stat]);
         });
         var csv = rows.map(r => r.map(c => '"' + (c || '').replace(/"/g, '""') + '"').join(',')).join('\n');
         var a = document.createElement('a'); a.href = 'data:text/csv,' + encodeURIComponent(csv); a.download = 'doubt_sessions.csv'; a.click();

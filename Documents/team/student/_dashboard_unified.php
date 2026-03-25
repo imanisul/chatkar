@@ -428,13 +428,29 @@ $myCoins = $myCoins ?? 0;
                 <div class="dash-card" style="padding:28px; position:relative; overflow:hidden; margin-top:20px;">
                     <div style="font-size:11px;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:20px;">My Doubts</div>
                     
-                    <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
+                    <div style="display:flex; align-items:center; gap:16px; margin-bottom:18px;">
                         <div style="width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg, #e0e7ff, #c7d2fe); display:flex; align-items:center; justify-content:center;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                         </div>
                         <div>
                             <div style="font-size:32px; font-weight:900; color:#1e293b; line-height:1;"><?= (int)($totalDoubts ?? 0) ?></div>
                             <div style="font-size:13px; font-weight:700; color:#64748b; margin-top:4px;">Total Doubts</div>
+                        </div>
+                    </div>
+
+                    <!-- Pending / Answered Breakdown -->
+                    <?php
+                        $pendingDoubtsCount = (int)($totalDoubts ?? 0) - (int)($answeredDoubts ?? 0);
+                        if ($pendingDoubtsCount < 0) $pendingDoubtsCount = 0;
+                    ?>
+                    <div style="display:flex; gap:10px; margin-bottom:18px;">
+                        <div style="flex:1; background:#fef3c7; border-radius:10px; padding:10px 12px; text-align:center;">
+                            <div style="font-size:20px; font-weight:900; color:#b45309;"><?= $pendingDoubtsCount ?></div>
+                            <div style="font-size:10px; font-weight:800; color:#92400e; text-transform:uppercase; letter-spacing:0.5px;">Pending</div>
+                        </div>
+                        <div style="flex:1; background:#d1fae5; border-radius:10px; padding:10px 12px; text-align:center;">
+                            <div style="font-size:20px; font-weight:900; color:#059669;"><?= (int)($answeredDoubts ?? 0) ?></div>
+                            <div style="font-size:10px; font-weight:800; color:#065f46; text-transform:uppercase; letter-spacing:0.5px;">Answered</div>
                         </div>
                     </div>
                     

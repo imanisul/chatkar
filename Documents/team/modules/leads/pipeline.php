@@ -421,6 +421,7 @@ if (empty($board['New'])): ?>
 endif; ?>
     </div>
 
+
     <!-- MESSAGE SENT COLUMN -->
     <div class="pl-col col-msg">
         <div class="pl-col-header">
@@ -480,7 +481,6 @@ endif; ?>
         <div style="text-align:center; padding: 20px; font-size:13px; font-weight:700; color:#cbd5e1;">Drop Zone Empty</div>
         <?php endif; ?>
     </div>
-
 
     <!-- TO CALL COLUMN -->
     <div class="pl-col col-call">
