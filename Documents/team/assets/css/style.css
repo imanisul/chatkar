@@ -2133,11 +2133,11 @@ tbody td {
 
 .modal {
   background: #fff;
-  border-radius: var(--r-xl);
-  width: 100%;
-  max-width: 520px;
-  max-height: calc(100vh - 40px);
-  max-height: calc(100svh - 40px);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  max-height: 80svh;
   display: flex !important;
   flex-direction: column;
   box-shadow: var(--sh-lg);
@@ -2195,19 +2195,24 @@ tbody td {
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 20px 20px 30px;
   flex: 1;
   overflow-y: auto;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .modal-footer {
-  padding: 11px 18px;
-  border-top: 1.5px solid var(--border-light);
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
   display: flex;
-  gap: 8px;
-  justify-content: flex-end
+  gap: 12px;
+  justify-content: flex-end;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 /* ── ACTIVITY LOG ─────────────────────────────────────────── */

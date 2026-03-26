@@ -682,10 +682,10 @@ document.addEventListener('click', function(e) {
             <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Mark Irregularity</h3>
             <button onclick="closeModal('addModal')" class="modal-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
-        <div class="modal-body">
-            <form method="POST" id="addIrrForm">
-                <?= csrfField() ?>
-                <input type="hidden" name="add_irregularity" value="1">
+        <form method="POST" id="addIrrForm">
+            <?= csrfField() ?>
+            <input type="hidden" name="add_irregularity" value="1">
+            <div class="modal-body">
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Teacher *</label>
@@ -736,12 +736,12 @@ document.addEventListener('click', function(e) {
                             placeholder="Describe the issue briefly..."></textarea>
                     </div>
                 </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('addModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Mark Irregularity</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Mark Irregularity</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -752,10 +752,10 @@ document.addEventListener('click', function(e) {
             <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Resolve Irregularity</h3>
             <button onclick="closeModal('resolveModal')" class="modal-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
-        <div class="modal-body">
-            <form method="POST">
-                <?= csrfField() ?>
-                <input type="hidden" name="resolve_id" id="resolveId">
+        <form method="POST">
+            <?= csrfField() ?>
+            <input type="hidden" name="resolve_id" id="resolveId">
+            <div class="modal-body">
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label class="d-flex align-items-center" style="gap:8px; cursor:pointer; padding: 12px; border: 1px solid #fca5a5; background: #fef2f2; border-radius: 8px;">
                         <input type="checkbox" name="is_lop" value="1" style="width:16px; height:16px; accent-color: #ef4444;">
@@ -767,12 +767,12 @@ document.addEventListener('click', function(e) {
                     <textarea name="resolve_note" class="input" rows="3"
                         placeholder="Describe how this was resolved or any action taken..."></textarea>
                 </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('resolveModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Mark Resolved</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('resolveModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Mark Resolved</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -812,20 +812,20 @@ document.addEventListener('click', function(e) {
             <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Submit Reason</h3>
             <button onclick="closeModal('reasonModal')" class="modal-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
-        <div class="modal-body">
-            <form method="POST">
-                <?= csrfField() ?>
-                <input type="hidden" name="submit_reason_id" id="reasonId">
+        <form method="POST">
+            <?= csrfField() ?>
+            <input type="hidden" name="submit_reason_id" id="reasonId">
+            <div class="modal-body">
                 <div class="form-group">
                     <label>Your Reason / Explanation</label>
                     <textarea name="teacher_reason" class="input" rows="4" required placeholder="Provide your reason for this irregularity..."></textarea>
                 </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('reasonModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Submit Reason</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('reasonModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Submit Reason</button>
+            </div>
+        </form>
     </div>
 </div>
 <script>

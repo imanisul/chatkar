@@ -740,20 +740,20 @@ function setStatus(val) {
             <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Reply to Doubt</div><button class="modal-close"
                 onclick="closeModal('replyDoubtModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
-        <div class="modal-body">
-            <div id="replyMeta"
-                style="background:#f8fafc;border-radius:12px;padding:14px 16px;margin-bottom:18px;border:1.5px solid #e2e8f0">
-                <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#4b5563;margin-bottom:6px">
-                    Student's Doubt</div>
-                <div style="font-size:13px;font-weight:700;color:#1e1b4b" id="replyStudentName"></div>
-                <div style="font-size:12px;color:#6b7280;margin-top:4px" id="replySubjectText"></div>
-                <div style="font-size:13px;color:#374151;margin-top:10px;line-height:1.6;font-style:italic"
-                    id="replyDoubtDesc"></div>
-            </div>
-            <form method="POST">
-                <?= csrfField() ?>
-                <input type="hidden" name="reply_doubt" value="1">
-                <input type="hidden" name="doubt_id" id="replyDoubtId">
+        <form method="POST">
+            <?= csrfField() ?>
+            <input type="hidden" name="reply_doubt" value="1">
+            <input type="hidden" name="doubt_id" id="replyDoubtId">
+            <div class="modal-body">
+                <div id="replyMeta"
+                    style="background:#f8fafc;border-radius:12px;padding:14px 16px;margin-bottom:18px;border:1.5px solid #e2e8f0">
+                    <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#4b5563;margin-bottom:6px">
+                        Student's Doubt</div>
+                    <div style="font-size:13px;font-weight:700;color:#1e1b4b" id="replyStudentName"></div>
+                    <div style="font-size:12px;color:#6b7280;margin-top:4px" id="replySubjectText"></div>
+                    <div style="font-size:13px;color:#374151;margin-top:10px;line-height:1.6;font-style:italic"
+                        id="replyDoubtDesc"></div>
+                </div>
                 <div class="form-group">
                     <label>Your Reply / Answer *</label>
                     <textarea name="reply_notes" rows="5"
@@ -763,13 +763,13 @@ function setStatus(val) {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Student will be notified via email &amp; in-app notification automatically.
                     </div>
                 </div>
-                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="closeModal('replyDoubtModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Send Reply</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('replyDoubtModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Send Reply</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -804,10 +804,10 @@ function setStatus(val) {
             <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Doubt Session</div><button class="modal-close"
                 onclick="closeModal('addDoubtModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
-        <div class="modal-body">
-            <form method="POST">
-                <?= csrfField() ?>
-                <input type="hidden" name="add_session" value="1">
+        <form method="POST">
+            <?= csrfField() ?>
+            <input type="hidden" name="add_session" value="1">
+            <div class="modal-body">
                 <div class="form-grid">
                     <div class="form-group"><label>Student *</label><select name="student_id" required>
                             <option value="">Select Student</option>
@@ -859,13 +859,13 @@ function setStatus(val) {
                     <div class="form-group" style="grid-column:1/-1"><label>Teacher Notes / Reply</label><textarea
                             name="notes" rows="2" placeholder="How was it resolved?"></textarea></div>
                 </div>
-                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="closeModal('addDoubtModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('addDoubtModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save</button>
+            </div>
+        </form>
     </div>
 </div>
 
