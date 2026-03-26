@@ -2136,8 +2136,7 @@ tbody td {
   border-radius: 12px;
   width: 90%;
   max-width: 600px;
-  max-height: 80vh;
-  max-height: 80svh;
+  max-height: 90vh; /* User spec */
   display: flex !important;
   flex-direction: column;
   box-shadow: var(--sh-lg);
@@ -2198,7 +2197,7 @@ tbody td {
   padding: 20px 20px 30px;
   flex: 1;
   overflow-y: auto;
-  min-height: 0;
+  max-height: calc(90vh - 130px); /* User spec - increased offset for safety */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }

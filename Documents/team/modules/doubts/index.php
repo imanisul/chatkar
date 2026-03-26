@@ -807,67 +807,88 @@ function setStatus(val) {
         <form method="POST">
             <?= csrfField() ?>
             <input type="hidden" name="add_session" value="1">
-            <div class="modal-body">
-                <div class="form-grid">
-                    <div class="form-group"><label>Student *</label><select name="student_id" required>
-                            <option value="">Select Student</option>
-                            <?php $grp=[]; foreach ($students as $s) $grp[$s['class']][]=$s; foreach ($grp as $cls=>$studs): ?>
-                            <optgroup label="<?= $cls ?>">
-                                <?php foreach ($studs as $s): ?>
-                                <option value="<?= $s['id'] ?>">
-                                    <?= sanitize($s['name']) ?>
-                                    <?= $s['phone']?' - '.$s['phone']:'' ?>
+            <div class="modal-body" id="addDoubtBody">
+                <!-- Step 1 -->
+                <div id="addStep1">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;background:#f0fbff;padding:12px;border-radius:10px;border:1.5px solid #bae6fd">
+                        <div style="background:#0ea5e9;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">1</div>
+                        <div style="font-weight:700;color:#0369a1;font-size:14px">Basic Information</div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Student *</label><select name="student_id" required>
+                                <option value="">Select Student</option>
+                                <?php $grp=[]; foreach ($students as $s) $grp[$s['class']][]=$s; foreach ($grp as $cls=>$studs): ?>
+                                <optgroup label="<?= $cls ?>">
+                                    <?php foreach ($studs as $s): ?>
+                                    <option value="<?= $s['id'] ?>">
+                                        <?= sanitize($s['name']) ?>
+                                        <?= $s['phone']?' - '.$s['phone']:'' ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </optgroup>
+                                <?php endforeach; ?>
+                            </select></div>
+                        <?php if ($canManage): ?>
+                        <div class="form-group"><label>Teacher *</label><select name="teacher_id" required>
+                                <option value="">Select</option>
+                                <?php foreach ($teachers as $t): ?>
+                                <option value="<?= $t['id'] ?>">
+                                    <?= sanitize($t['name']) ?>
                                 </option>
                                 <?php endforeach; ?>
-                            </optgroup>
-                            <?php endforeach; ?>
-                        </select></div>
-                    <?php if ($canManage): ?>
-                    <div class="form-group"><label>Teacher *</label><select name="teacher_id" required>
-                            <option value="">Select</option>
-                            <?php foreach ($teachers as $t): ?>
-                            <option value="<?= $t['id'] ?>">
-                                <?= sanitize($t['name']) ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select></div>
-                    <?php endif; ?>
-                    <div class="form-group"><label>Subject *</label><select name="subject" required>
-                            <option value="">- Select -</option>
-                            <?php foreach ($platformSubjects as $s): ?>
-                            <option value="<?= $s ?>">
-                                <?= $s ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select></div>
-                    <div class="form-group"><label>Topic</label><input type="text" name="topic"
-                            placeholder="e.g. Quadratic Equations"></div>
-                    <div class="form-group"><label>Date *</label><input type="date" name="session_date"
-                            value="<?= date('Y-m-d') ?>" required></div>
-                    <div class="form-group"><label>Time</label><input type="time" name="session_time"></div>
-                    <div class="form-group"><label>Duration (min)</label><input type="number" name="duration_minutes"
-                            value="30" min="5"></div>
-                    <div class="form-group"><label>Status</label><select name="status">
-                            <option value="Completed">✅ Completed</option>
-                            <option value="Pending">⏳ Pending</option>
-                            <option value="Scheduled">📅 Scheduled</option>
-                            <option value="Cancelled">❌ Cancelled</option>
-                        </select></div>
-                    <div class="form-group" style="grid-column:1/-1"><label>Doubt Description</label><textarea
-                            name="doubt_description" rows="2" placeholder="What was the student's doubt?"></textarea>
+                            </select></div>
+                        <?php endif; ?>
+                        <div class="form-group" style="grid-column:1/-1"><label>Subject *</label><select name="subject" required>
+                                <option value="">- Select -</option>
+                                <?php foreach ($platformSubjects as $s): ?>
+                                <option value="<?= $s ?>">
+                                    <?= $s ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select></div>
                     </div>
-                    <div class="form-group" style="grid-column:1/-1"><label>Teacher Notes / Reply</label><textarea
-                            name="notes" rows="2" placeholder="How was it resolved?"></textarea></div>
+                </div>
+
+                <!-- Step 2 -->
+                <div id="addStep2" style="display:none">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;background:#f0fdf4;padding:12px;border-radius:10px;border:1.5px solid #bbf7d0">
+                        <div style="background:#22c55e;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">2</div>
+                        <div style="font-weight:700;color:#15803d;font-size:14px">Session Details & Status</div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>Topic</label><input type="text" name="topic"
+                                placeholder="e.g. Quadratic Equations"></div>
+                        <div class="form-group"><label>Date *</label><input type="date" name="session_date"
+                                value="<?= date('Y-m-d') ?>" required></div>
+                        <div class="form-group"><label>Time</label><input type="time" name="session_time"></div>
+                        <div class="form-group"><label>Duration (min)</label><input type="number" name="duration_minutes"
+                                value="30" min="5"></div>
+                        <div class="form-group"><label>Status</label><select name="status">
+                                <option value="Completed">✅ Completed</option>
+                                <option value="Pending">⏳ Pending</option>
+                                <option value="Scheduled">📅 Scheduled</option>
+                                <option value="Cancelled">❌ Cancelled</option>
+                            </select></div>
+                        <div class="form-group" style="grid-column:1/-1"><label>Doubt Description</label><textarea
+                                name="doubt_description" rows="2" placeholder="What was the student's doubt?"></textarea>
+                        </div>
+                        <div class="form-group" style="grid-column:1/-1"><label>Teacher Notes / Reply</label><textarea
+                                name="notes" rows="2" placeholder="How was it resolved?"></textarea></div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary"
-                    onclick="closeModal('addDoubtModal')">Cancel</button>
-                <button type="submit" class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save</button>
+                <div style="display:flex; gap:10px; width:100%; justify-content:flex-end">
+                    <button type="button" class="btn btn-secondary" id="btnBack" style="display:none" onclick="prevStep()">Back</button>
+                    <button type="button" class="btn btn-secondary" id="btnCancelAdd" onclick="closeModal('addDoubtModal')">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="btnNext" onclick="nextStep()">Next Step <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                    <button type="submit" class="btn btn-primary" id="btnSave" style="display:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Session</button>
+                </div>
             </div>
         </form>
     </div>
 </div>
+
 
 <script>
     function openReply(id, studentName, subject, desc) {
@@ -896,6 +917,28 @@ function setStatus(val) {
         });
         var csv = rows.map(r => r.map(c => '"' + (c || '').replace(/"/g, '""') + '"').join(',')).join('\n');
         var a = document.createElement('a'); a.href = 'data:text/csv,' + encodeURIComponent(csv); a.download = 'doubt_sessions.csv'; a.click();
+    }
+    function nextStep() {
+        document.getElementById('addStep1').style.display = 'none';
+        document.getElementById('addStep2').style.display = 'block';
+        document.getElementById('btnBack').style.display = 'block';
+        document.getElementById('btnCancelAdd').style.display = 'none';
+        document.getElementById('btnNext').style.display = 'none';
+        document.getElementById('btnSave').style.display = 'block';
+    }
+    function prevStep() {
+        document.getElementById('addStep1').style.display = 'block';
+        document.getElementById('addStep2').style.display = 'none';
+        document.getElementById('btnBack').style.display = 'none';
+        document.getElementById('btnCancelAdd').style.display = 'block';
+        document.getElementById('btnNext').style.display = 'block';
+        document.getElementById('btnSave').style.display = 'none';
+    }
+    // Reset steps when opening modal
+    const originalOpenModal = window.openModal;
+    window.openModal = function(id) {
+        if(id === 'addDoubtModal') prevStep();
+        originalOpenModal(id);
     }
 </script>
 <?php require_once '../../includes/footer.php'; ?>
