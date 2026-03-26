@@ -64,6 +64,17 @@ if ($canManage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resolve
     redirect('index.php?msg=resolved');
 }
 
+// ── Toggle LOP ───────────────────────────────────────────────
+if ($canManage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_lop_id'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        redirect("index.php?error=csrf");
+    }
+    $db->prepare("UPDATE teacher_irregularities SET is_lop = NOT is_lop WHERE id=?")
+       ->execute([(int)$_POST['toggle_lop_id']]);
+    logActivity($user['id'], "Toggled LOP status for irregularity #".(int)$_POST['toggle_lop_id'], 'irregularities');
+    redirect('index.php?msg=lop_toggled');
+}
+
 // ── Submit Reason (teacher only) ─────────────────────────────
 if ($role === 'teacher' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reason_id'])) {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -164,7 +175,7 @@ if ($canMark) {
     } catch (Exception $e) {}
 }
 
-$TYPES = ['Absent','Late Arrival','Early Departure','Class Not Taken','Misbehavior','Incomplete Syllabus','Other'];
+$TYPES = ['Absent','Late Arrival','Early Departure','Class Not Taken','Misbehavior','Incomplete Syllabus','No PPT','Other'];
 $SEVERITIES = ['Low','Medium','High'];
 
 $root = '../../';
@@ -179,7 +190,7 @@ require_once '../../includes/header.php';
 
 <?php if (isset($_GET['msg'])): ?>
 <div class="alert alert-<?= $_GET['msg']==='deleted'?'danger':'success' ?>" data-auto-dismiss>
-    <?= match($_GET['msg']){'marked'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Irregularity marked successfully.','resolved'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Marked as resolved.','reason_added'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Reason submitted successfully.','deleted'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Record deleted.',default=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Done.'} ?>
+    <?= match($_GET['msg']){'marked'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Irregularity marked successfully.','resolved'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Marked as resolved.','lop_toggled'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Loss of Pay status updated.','reason_added'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Reason submitted successfully.','deleted'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Record deleted.',default=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Done.'} ?>
 </div>
 <?php endif; ?>
 
@@ -489,12 +500,13 @@ require_once '../../includes/header.php';
 .irr-sev-badge.sev-high { background: #fee2e2; color: #b91c1c; box-shadow: inset 0 0 0 1px #fca5a5; }
 
 /* Three-Dot Menu */
-.irr-menu-wrap { position: absolute; top: 16px; right: 20px; }
+.irr-menu-wrap { position: absolute; top: 16px; right: 20px; z-index: 10; }
 .irr-menu-btn {
-    background: none; border: none; padding: 4px; border-radius: 6px;
-    color: var(--text-light); cursor: pointer; transition: 0.2s;
+    background: #f8fafc; border: 1px solid var(--border); padding: 4px 6px; border-radius: 6px;
+    color: var(--text-mid); cursor: pointer; transition: 0.2s;
+    display: flex; align-items: center; justify-content: center;
 }
-.irr-menu-btn:hover { background: #f1f5f9; color: var(--text-mid); }
+.irr-menu-btn:hover { background: #f1f5f9; color: var(--text); border-color: #cbd5e1; }
 .irr-dropdown {
     position: absolute; right: 0; top: 100%; mt: 4px;
     background: #fff; border: 1px solid var(--border); border-radius: 8px;
@@ -536,7 +548,7 @@ document.addEventListener('click', function(e) {
             $statusClass = $r['status']==='Resolved' ? 'irr-resolved' : 'irr-open';
             $typeIcon = match($r['type']){
                 'Absent'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>','Late Arrival'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>','Early Departure'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
-                'Class Not Taken'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>','Misbehavior'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>','Incomplete Syllabus'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+                'Class Not Taken'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>','Misbehavior'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>','Incomplete Syllabus'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>','No PPT'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>',
                 default=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
             };
             $bgId = (abs(crc32($r['teacher_name'] ?? 'A')) % 5) + 1;
@@ -550,6 +562,18 @@ document.addEventListener('click', function(e) {
                 <div class="irr-dropdown" id="memu-<?= $r['id'] ?>">
                     <?php if ($r['status']==='Open'): ?>
                     <button onclick="openResolve(<?= $r['id'] ?>)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Resolve</button>
+                    <?php endif; ?>
+                    <?php if ($r['status']==='Resolved'): ?>
+                    <form method="POST">
+                        <input type="hidden" name="toggle_lop_id" value="<?= $r['id'] ?>">
+                        <button type="submit">
+                            <?php if(!empty($r['is_lop'])): ?>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Remove LOP
+                            <?php else: ?>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="20 6 9 17 4 12"></polyline></svg> Mark as LOP
+                            <?php endif; ?>
+                        </button>
+                    </form>
                     <?php endif; ?>
                     <?php if ($role==='admin'): ?>
                     <form method="POST" onsubmit="return confirm('Delete this flag definitively?')">
