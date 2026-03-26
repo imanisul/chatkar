@@ -565,6 +565,7 @@ document.addEventListener('click', function(e) {
                     <?php endif; ?>
                     <?php if ($r['status']==='Resolved'): ?>
                     <form method="POST">
+                        <?= csrfField() ?>
                         <input type="hidden" name="toggle_lop_id" value="<?= $r['id'] ?>">
                         <button type="submit">
                             <?php if(!empty($r['is_lop'])): ?>
@@ -577,6 +578,7 @@ document.addEventListener('click', function(e) {
                     <?php endif; ?>
                     <?php if ($role==='admin'): ?>
                     <form method="POST" onsubmit="return confirm('Delete this flag definitively?')">
+                        <?= csrfField() ?>
                         <input type="hidden" name="delete_id" value="<?= $r['id'] ?>">
                         <button type="submit" class="text-danger"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete</button>
                     </form>
