@@ -2109,12 +2109,11 @@ tbody td {
   background: rgba(10, 25, 50, .5);
   z-index: 2000;
   display: none;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
-  padding: 5vh 16px 40px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  backdrop-filter: blur(8px);
+  padding: 20px;
+  overflow: hidden;
 }
 
 .modal-overlay.open {
@@ -2137,13 +2136,14 @@ tbody td {
   border-radius: var(--r-xl);
   width: 100%;
   max-width: 520px;
-  display: flex;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100svh - 40px);
+  display: flex !important;
   flex-direction: column;
   box-shadow: var(--sh-lg);
   position: relative;
-  /* Keep margin auto so it centers horizontally and is pushed from bottom */
-  margin: 0 auto auto auto;
-  animation: modalIn .2s ease forwards;
+  overflow: hidden;
+  animation: modalIn .3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes modalIn {
@@ -2195,9 +2195,10 @@ tbody td {
 }
 
 .modal-body {
-  padding: 18px;
-  flex: 1 1 auto;
+  padding: 20px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -4206,16 +4207,22 @@ textarea.input {
     padding: 13px
   }
 
-  /* Full-screen modal on phone */
+  /* Full-screen bottom drawer on phone */
   .modal-overlay {
-    padding: 0;
-    align-items: flex-end
+    padding: 10px;
+    align-items: flex-end;
   }
 
   .modal {
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     max-width: 100%;
-    max-height: 92vh
+    max-height: 90vh;
+    max-height: 90svh;
+    margin-bottom: -10px; /* pull down onto edge */
+  }
+
+  .modal-body {
+    padding: 15px; /* compact for mobile */
   }
 
   /* Filter bar wraps nicely */
