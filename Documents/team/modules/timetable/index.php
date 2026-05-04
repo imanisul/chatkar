@@ -642,6 +642,7 @@ $root='../../'; require_once '../../includes/header.php'; ?>
                             </svg>
                             Not Taken
                         </label>
+                        <?php if ($canManage): ?>
                         <label
                             style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);flex:1;transition:all .15s"
                             id="lbl-rescheduled">
@@ -653,6 +654,7 @@ $root='../../'; require_once '../../includes/header.php'; ?>
                             </svg>
                             Rescheduled
                         </label>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="form-group" id="topicSection">
