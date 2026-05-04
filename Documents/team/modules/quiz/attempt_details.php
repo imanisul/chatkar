@@ -27,11 +27,23 @@ try {
 if (!$attempt) redirect('index.php');
 
 // Parse answers from JSON column (answers stored as JSON in student_quiz_attempts)
+// NOTE: The quiz submission form (student/quiz.php) saves json_encode($_POST),
+// which stores answers with keys like "q15", "q16" (with 'q' prefix).
+// We normalize them to bare question IDs for easy lookup.
 $answersRaw = $attempt['answers'] ?? null;
 $studentAnswers = [];
 if ($answersRaw) {
     $decoded = is_string($answersRaw) ? json_decode($answersRaw, true) : $answersRaw;
-    if (is_array($decoded)) $studentAnswers = $decoded;
+    if (is_array($decoded)) {
+        foreach ($decoded as $key => $val) {
+            // Convert "q15" -> "15", keep bare IDs as-is
+            if (preg_match('/^q(\d+)$/', $key, $m)) {
+                $studentAnswers[$m[1]] = $val;
+            } else {
+                $studentAnswers[$key] = $val;
+            }
+        }
+    }
 }
 
 // Fetch all questions for this quiz (safe ORDER BY — no sort_order column dependency)
