@@ -194,7 +194,40 @@ function getStudentCoins(PDO $db, int $studentId): int
 // ─────────────────────────────────────────────
 
 /**
- * Update streak for a student on any daily activity (login, joining class, etc.)
+ * Check if a student had any activity on a given date.
+ * Activities: attendance (Present/Late), quiz attempt, homework submission, login (user_sessions).
+ */
+function studentHadActivityOnDate(PDO $db, int $studentId, string $date): bool
+{
+    try {
+        // 1. Attendance check (Present or Late)
+        $att = $db->prepare("SELECT COUNT(*) FROM attendance WHERE student_id=? AND date=? AND status IN ('Present','Late')");
+        $att->execute([$studentId, $date]);
+        if ((int)$att->fetchColumn() > 0) return true;
+
+        // 2. Quiz attempt check
+        $quiz = $db->prepare("SELECT COUNT(*) FROM student_quiz_attempts WHERE student_id=? AND DATE(submitted_at)=?");
+        $quiz->execute([$studentId, $date]);
+        if ((int)$quiz->fetchColumn() > 0) return true;
+
+        // 3. Homework submission check
+        $hw = $db->prepare("SELECT COUNT(*) FROM homework_submissions WHERE student_id=? AND DATE(submitted_at)=?");
+        $hw->execute([$studentId, $date]);
+        if ((int)$hw->fetchColumn() > 0) return true;
+
+        // 4. Live class attendance check
+        $lca = $db->prepare("SELECT COUNT(*) FROM live_class_attendance WHERE student_id=? AND DATE(joined_at)=?");
+        $lca->execute([$studentId, $date]);
+        if ((int)$lca->fetchColumn() > 0) return true;
+    } catch (Exception $e) {
+        // Silently ignore — table may not exist
+    }
+    return false;
+}
+
+/**
+ * Update streak for a student on any daily activity (login, joining class, attendance, quiz, homework).
+ * Now checks multiple activity sources, not just dashboard visits.
  * Returns [current_streak, longest_streak].
  */
 function updateStreak(PDO $db, int $studentId): array
@@ -230,7 +263,7 @@ function updateStreak(PDO $db, int $studentId): array
         $row = $q->fetch();
 
         if (!$row) {
-            // New record
+            // New record — student's first activity today
             $db->prepare("INSERT INTO student_streaks (student_id, current_streak, longest_streak, last_activity_date) VALUES (?,1,1,?)")
                 ->execute([$studentId, $today]);
             return [1, 1];
@@ -247,11 +280,36 @@ function updateStreak(PDO $db, int $studentId): array
             // Consecutive day — increment
             $newCurrent = (int)$row['current_streak'] + 1;
             $newLongest = max($newCurrent, (int)$row['longest_streak']);
-        }
-        else {
-            // Streak broken — reset
-            $newCurrent = 1;
-            $newLongest = (int)$row['longest_streak'];
+        } else {
+            // Check if missed days had any activity (backfill streaks from attendance etc.)
+            // Walk backwards from yesterday to last_activity_date to find continuous activity
+            $checkDate = new DateTime($yesterday, $tz);
+            $lastDate = new DateTime($last, $tz);
+            $streakFromYesterday = 0;
+            
+            while ($checkDate > $lastDate) {
+                $dateStr = $checkDate->format('Y-m-d');
+                if (studentHadActivityOnDate($db, $studentId, $dateStr)) {
+                    $streakFromYesterday++;
+                    $checkDate->modify('-1 day');
+                } else {
+                    break;
+                }
+            }
+            
+            if ($streakFromYesterday > 0 && $checkDate->format('Y-m-d') <= $last) {
+                // There's a continuous chain from yesterday back to last_activity_date
+                $newCurrent = (int)$row['current_streak'] + $streakFromYesterday + 1;
+                $newLongest = max($newCurrent, (int)$row['longest_streak']);
+            } elseif ($streakFromYesterday > 0) {
+                // Continuous from yesterday but gap before that — start new streak
+                $newCurrent = $streakFromYesterday + 1; // +1 for today
+                $newLongest = max($newCurrent, (int)$row['longest_streak']);
+            } else {
+                // No activity yesterday — streak broken, reset
+                $newCurrent = 1;
+                $newLongest = (int)$row['longest_streak'];
+            }
         }
 
         $db->prepare("UPDATE student_streaks SET current_streak=?, longest_streak=?, last_activity_date=? WHERE student_id=?")
@@ -263,6 +321,45 @@ function updateStreak(PDO $db, int $studentId): array
         error_log("updateStreak ERROR for student $studentId: " . $e->getMessage());
         return [0, 0];
     }
+}
+
+/**
+ * Get the last 7 days of activity status for streak display.
+ * Returns array of ['date' => 'Y-m-d', 'active' => bool] ordered from 6 days ago to today.
+ */
+function getStreakHistory(PDO $db, int $studentId): array
+{
+    $tz = new DateTimeZone('Asia/Kolkata');
+    $history = [];
+    
+    for ($i = 6; $i >= 0; $i--) {
+        $dt = new DateTime("now", $tz);
+        $dt->modify("-$i days");
+        $dateStr = $dt->format('Y-m-d');
+        $dayName = $dt->format('D');
+        
+        $active = false;
+        if ($i === 0) {
+            // Today — always active if they're viewing this page
+            $active = true;
+        } else {
+            // Check attendance
+            $active = studentHadActivityOnDate($db, $studentId, $dateStr);
+            
+            // Also check if streak table says this date was the last_activity_date
+            if (!$active) {
+                try {
+                    $q = $db->prepare("SELECT last_activity_date FROM student_streaks WHERE student_id=? AND last_activity_date=?");
+                    $q->execute([$studentId, $dateStr]);
+                    if ($q->fetch()) $active = true;
+                } catch (Exception $e) {}
+            }
+        }
+        
+        $history[] = ['date' => $dateStr, 'day' => $dayName, 'active' => $active];
+    }
+    
+    return $history;
 }
 
 /**

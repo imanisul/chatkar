@@ -17,29 +17,37 @@ $report = [];
 $exportAll = isset($_GET['export_all']) && $_GET['export_all'] == 1;
 
 if ($selTeacher) {
-    if ($exportAll) {
-        $stmt = $db->prepare("SELECT tcl.*,u.name as teacher_name, tt.start_time, tt.end_time FROM teacher_class_log tcl JOIN users u ON tcl.teacher_id=u.id LEFT JOIN timetable tt ON tcl.timetable_id=tt.id WHERE tcl.teacher_id=? ORDER BY tcl.date DESC,tt.start_time");
-        $stmt->execute([$selTeacher]);
-    } else {
-        $stmt = $db->prepare("SELECT tcl.*,u.name as teacher_name, tt.start_time, tt.end_time FROM teacher_class_log tcl JOIN users u ON tcl.teacher_id=u.id LEFT JOIN timetable tt ON tcl.timetable_id=tt.id WHERE tcl.teacher_id=? AND tcl.date BETWEEN ? AND ? ORDER BY tcl.date DESC,tt.start_time");
-        $stmt->execute([$selTeacher,$fromDate,$toDate]);
+    try {
+        if ($exportAll) {
+            $stmt = $db->prepare("SELECT tcl.*,u.name as teacher_name, tt.start_time, tt.end_time FROM teacher_class_log tcl JOIN users u ON tcl.teacher_id=u.id LEFT JOIN timetable tt ON tcl.timetable_id=tt.id WHERE tcl.teacher_id=? ORDER BY tcl.date DESC,tt.start_time");
+            $stmt->execute([$selTeacher]);
+        } else {
+            $stmt = $db->prepare("SELECT tcl.*,u.name as teacher_name, tt.start_time, tt.end_time FROM teacher_class_log tcl JOIN users u ON tcl.teacher_id=u.id LEFT JOIN timetable tt ON tcl.timetable_id=tt.id WHERE tcl.teacher_id=? AND tcl.date BETWEEN ? AND ? ORDER BY tcl.date DESC,tt.start_time");
+            $stmt->execute([$selTeacher,$fromDate,$toDate]);
+        }
+        $report = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        die("Database Error on Detailed Query: " . $e->getMessage());
     }
-    $report = $stmt->fetchAll();
 }
 
 // Summary stats per teacher
-$summaryStmt = $db->query("SELECT u.id,u.name,
-    COUNT(DISTINCT tt.id) as weekly_slots,
-    (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken,
-    (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
-    (SELECT COUNT(DISTINCT date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id) as total_days,
-    (SELECT MAX(date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as last_class_date,
-    (SELECT COUNT(*) FROM teacher_irregularities ir WHERE ir.teacher_id=u.id AND ir.is_lop=1) as total_lops,
-    (SELECT COUNT(*) FROM leave_requests lr WHERE lr.user_id=u.id AND lr.status='Approved') as total_leaves,
-    COALESCE(u.warning_count, 0) as warning_count
-    FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
-    WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
-$summary = $summaryStmt->fetchAll();
+try {
+    $summaryStmt = $db->query("SELECT u.id,u.name,
+        COUNT(DISTINCT tt.id) as weekly_slots,
+        (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken,
+        (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
+        (SELECT COUNT(DISTINCT date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id) as total_days,
+        (SELECT MAX(date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as last_class_date,
+        (SELECT COUNT(*) FROM teacher_irregularities ir WHERE ir.teacher_id=u.id AND ir.is_lop=1) as total_lops,
+        (SELECT COUNT(*) FROM leave_requests lr WHERE lr.user_id=u.id AND lr.status='Approved') as total_leaves,
+        COALESCE(u.warning_count, 0) as warning_count
+        FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
+        WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
+    $summary = $summaryStmt->fetchAll();
+} catch (PDOException $e) {
+    die("Database Error on Summary Query: " . $e->getMessage());
+}
 
 $root = '../../'; require_once '../../includes/header.php'; ?>
 

@@ -57,6 +57,7 @@ $myCoins = getStudentCoins($db, $sid);
 $streakData = updateStreak($db, $sid); // also updates streak on each login/visit
 $myStreak = $streakData[0];
 $longestStreak = $streakData[1];
+$streakHistory = getStreakHistory($db, $sid); // 7-day streak history for Snapchat-style UI
 
 // Today's timetable
 $todaySlots = [];

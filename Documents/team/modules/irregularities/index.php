@@ -75,23 +75,75 @@ if ($canManage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_
     redirect('index.php?msg=lop_toggled');
 }
 
-// ── Submit Reason (teacher only) ─────────────────────────────
-if ($role === 'teacher' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reason_id'])) {
+// ── Submit Reason (teacher / mentor / marketing) ─────────────
+if (in_array($role, ['teacher','mentor','marketing']) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reason_id'])) {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         redirect("index.php?error=csrf");
     }
     $reason = sanitize($_POST['teacher_reason'] ?? '');
     $irrId = (int)$_POST['submit_reason_id'];
     
-    // Ensure it belongs to the teacher and is Open
+    // Ensure it belongs to the user and is Open
     $chk = $db->prepare("SELECT id FROM teacher_irregularities WHERE id=? AND teacher_id=? AND status='Open'");
     $chk->execute([$irrId, $user['id']]);
     if ($chk->fetch()) {
         try {
-            $db->prepare("UPDATE teacher_irregularities SET teacher_reason=? WHERE id=?")
+            $db->prepare("UPDATE teacher_irregularities SET teacher_reason=?, lop_status='reason_submitted' WHERE id=?")
                ->execute([$reason, $irrId]);
-        } catch(Exception $e) {}
+        } catch(Exception $e) {
+            // Fallback if lop_status column doesn't exist yet
+            try {
+                $db->prepare("UPDATE teacher_irregularities SET teacher_reason=? WHERE id=?")
+                   ->execute([$reason, $irrId]);
+            } catch(Exception $e2) {}
+        }
         redirect('index.php?msg=reason_added');
+    }
+}
+
+// ── Accept LOP Reason (admin only) — Remove LOP, Issue Warning ──
+if ($role === 'admin' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accept_lop_id'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        redirect("index.php?error=csrf");
+    }
+    $lopId = (int)$_POST['accept_lop_id'];
+    try {
+        // Remove the LOP, mark as warning issued
+        $db->prepare("UPDATE teacher_irregularities SET is_lop=0, lop_status='warning_issued', status='Resolved', resolved_by=?, resolved_at=NOW(), resolve_note='LOP removed after reason accepted. Warning issued.' WHERE id=?")
+           ->execute([$user['id'], $lopId]);
+        
+        // Get the teacher/member and increment their warning count
+        $tStmt = $db->prepare("SELECT teacher_id FROM teacher_irregularities WHERE id=?");
+        $tStmt->execute([$lopId]);
+        $tRow = $tStmt->fetch();
+        if ($tRow) {
+            try {
+                $db->prepare("UPDATE users SET warning_count = COALESCE(warning_count, 0) + 1 WHERE id=?")
+                   ->execute([$tRow['teacher_id']]);
+            } catch(Exception $e) {}
+        }
+        
+        logActivity($user['id'], "Accepted LOP reason, issued warning for irregularity #$lopId", 'irregularities');
+        redirect('index.php?msg=lop_accepted');
+    } catch(Exception $e) {
+        redirect('index.php?error=db');
+    }
+}
+
+// ── Reject LOP Reason (admin only) — Confirm LOP ────────────
+if ($role === 'admin' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reject_lop_id'])) {
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        redirect("index.php?error=csrf");
+    }
+    $lopId = (int)$_POST['reject_lop_id'];
+    try {
+        $db->prepare("UPDATE teacher_irregularities SET lop_status='confirmed', status='Resolved', resolved_by=?, resolved_at=NOW(), resolve_note='LOP confirmed. Reason not accepted.' WHERE id=?")
+           ->execute([$user['id'], $lopId]);
+        
+        logActivity($user['id'], "Rejected LOP reason, confirmed LOP for irregularity #$lopId", 'irregularities');
+        redirect('index.php?msg=lop_confirmed');
+    } catch(Exception $e) {
+        redirect('index.php?error=db');
     }
 }
 
@@ -126,8 +178,8 @@ $sql = "SELECT ir.*,
         WHERE 1=1";
 $params = [];
 
-// Teacher sees only their own
-if ($role === 'teacher') {
+// Non-admin/mentor sees only their own
+if (in_array($role, ['teacher','mentor','marketing'])) {
     $sql .= " AND ir.teacher_id=?"; $params[] = $user['id'];
 }
 
@@ -147,7 +199,7 @@ try {
 } catch (Exception $e) {}
 
 // Teachers list
-$teachers = $canMark ? $db->query("SELECT id, name FROM users WHERE role='teacher' ORDER BY name")->fetchAll() : [];
+$teachers = $canMark ? $db->query("SELECT id, name, role FROM users WHERE role IN ('teacher','mentor','marketing') ORDER BY name")->fetchAll() : [];
 
 // Stats
 $myStats = ['open'=>0, 'resolved'=>0, 'total'=>0, 'high'=>0, 'this_month'=>0, 'lop'=>0];
@@ -175,7 +227,7 @@ if ($canMark) {
     } catch (Exception $e) {}
 }
 
-$TYPES = ['Absent','Late Arrival','Early Departure','Class Not Taken','Misbehavior','Incomplete Syllabus','No PPT','Other'];
+$TYPES = ['Absent','Late Arrival','Early Departure','Class Not Taken','Misbehavior','Incomplete Syllabus','No PPT','Auto LOP - Insufficient Login','Other'];
 $SEVERITIES = ['Low','Medium','High'];
 
 $root = '../../';
@@ -189,8 +241,8 @@ require_once '../../includes/header.php';
 <?php endif; ?>
 
 <?php if (isset($_GET['msg'])): ?>
-<div class="alert alert-<?= $_GET['msg']==='deleted'?'danger':'success' ?>" data-auto-dismiss>
-    <?= match($_GET['msg']){'marked'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Irregularity marked successfully.','resolved'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Marked as resolved.','lop_toggled'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Loss of Pay status updated.','reason_added'=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Reason submitted successfully.','deleted'=>'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Record deleted.',default=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Done.'} ?>
+<div class="alert alert-<?= in_array($_GET['msg'], ['deleted','lop_confirmed']) ?'danger':'success' ?>" data-auto-dismiss>
+    <?= match($_GET['msg']){'marked'=>'⚠️ Irregularity marked successfully.','resolved'=>'✅ Marked as resolved.','lop_toggled'=>'💰 Loss of Pay status updated.','reason_added'=>'💬 Reason submitted successfully.','lop_accepted'=>'✅ LOP removed. Warning issued to team member.','lop_confirmed'=>'⚠️ LOP confirmed. Salary deduction will apply.','deleted'=>'🗑️ Record deleted.',default=>'✅ Done.'} ?>
 </div>
 <?php endif; ?>
 
@@ -639,8 +691,51 @@ document.addEventListener('click', function(e) {
                     
                     <?php if (!empty($r['teacher_reason'])): ?>
                     <div class="irr-tl-step" style="--step-color:#3b82f6">
-                        <div class="irr-tl-title" style="color:#3b82f6;">Teacher Reply</div>
+                        <div class="irr-tl-title" style="color:#3b82f6;">Team Member Reply</div>
                         <div class="irr-tl-note" style="border-left-color:#3b82f6"><?= nl2br(sanitize($r['teacher_reason'])) ?></div>
+                        
+                        <?php // Admin can Accept or Reject the LOP reason ?>
+                        <?php if ($role === 'admin' && $r['status'] === 'Open' && !empty($r['is_lop'])): ?>
+                        <div style="display:flex;gap:8px;margin-top:10px;">
+                            <form method="POST" style="flex:1;">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="accept_lop_id" value="<?= $r['id'] ?>">
+                                <button type="submit" class="btn btn-success btn-sm" style="width:100%;display:flex;align-items:center;justify-content:center;gap:4px;" data-confirm="Accept reason, remove LOP and issue warning?">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    Accept & Warn
+                                </button>
+                            </form>
+                            <form method="POST" style="flex:1;">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="reject_lop_id" value="<?= $r['id'] ?>">
+                                <button type="submit" class="btn btn-danger btn-sm" style="width:100%;display:flex;align-items:center;justify-content:center;gap:4px;" data-confirm="Reject reason and confirm LOP (salary deduction)?">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    Confirm LOP
+                                </button>
+                            </form>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <?php // Show auto-LOP info badge ?>
+                    <?php if (!empty($r['lop_auto_generated'])): ?>
+                    <div class="irr-tl-step">
+                        <div style="display:inline-flex;align-items:center;gap:6px;background:#fef2f2;border:1px solid #fecaca;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;color:#b91c1c;">
+                            ⚡ Auto-Generated LOP · Login: <?= number_format((float)($r['login_hours_logged'] ?? 0), 1) ?>h / 2h required
+                        </div>
+                        <?php
+                        $lopStatusLabel = match($r['lop_status'] ?? '') {
+                            'pending_reason' => '<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;">⏳ Awaiting Reason</span>',
+                            'reason_submitted' => '<span style="background:#dbeafe;color:#1e40af;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;">📩 Reason Submitted — Admin Review Needed</span>',
+                            'confirmed' => '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;">🔒 LOP Confirmed</span>',
+                            'warning_issued' => '<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;">⚠️ Warning Issued (LOP Removed)</span>',
+                            'revoked' => '<span style="background:#f0fdf4;color:#15803d;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;">✅ Revoked</span>',
+                            default => ''
+                        };
+                        if ($lopStatusLabel): ?>
+                        <div style="margin-top:6px;"><?= $lopStatusLabel ?></div>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
                     
@@ -658,7 +753,7 @@ document.addEventListener('click', function(e) {
                     <?php endif; ?>
                 </div>
 
-                <?php if ($role==='teacher' && $r['status']==='Open' && empty($r['teacher_reason'])): ?>
+                <?php if (in_array($role, ['teacher','mentor','marketing']) && $r['status']==='Open' && empty($r['teacher_reason'])): ?>
                 <div style="margin-top:16px;">
                     <button class="btn btn-secondary" style="font-size:12px; padding:6px 12px; display:inline-flex; align-items:center; gap:4px;" onclick="openReasonModal(<?= $r['id'] ?>)">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Submit Reason
@@ -804,8 +899,8 @@ document.addEventListener('click', function(e) {
 </script>
 <?php endif; ?>
 
-<!-- Teacher Reason Modal -->
-<?php if ($role === 'teacher'): ?>
+<!-- Teacher/Mentor/Marketing Reason Modal -->
+<?php if (in_array($role, ['teacher','mentor','marketing'])): ?>
 <div class="modal-overlay" id="reasonModal">
     <div class="modal" style="max-width:440px">
         <div class="modal-header">

@@ -737,7 +737,7 @@ function setStatus(val) {
 <div class="modal-overlay" id="replyDoubtModal">
     <div class="modal" style="max-width:520px">
         <div class="modal-header">
-            <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Reply to Doubt</div><button class="modal-close"
+            <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Reply to Doubt</div><button class="modal-close"
                 onclick="closeModal('replyDoubtModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
         <form method="POST">
@@ -747,9 +747,9 @@ function setStatus(val) {
             <div class="modal-body">
                 <div id="replyMeta"
                     style="background:#f8fafc;border-radius:12px;padding:14px 16px;margin-bottom:18px;border:1.5px solid #e2e8f0">
-                    <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#4b5563;margin-bottom:6px">
+                    <div style="font-size:10px;font-weight:800;text-transform:uppercase;color:#4b5563;margin-bottom:6px;letter-spacing:0.5px">
                         Student's Doubt</div>
-                    <div style="font-size:13px;font-weight:700;color:#1e1b4b" id="replyStudentName"></div>
+                    <div style="font-size:14px;font-weight:700;color:#1e1b4b" id="replyStudentName"></div>
                     <div style="font-size:12px;color:#6b7280;margin-top:4px" id="replySubjectText"></div>
                     <div style="font-size:13px;color:#374151;margin-top:10px;line-height:1.6;font-style:italic"
                         id="replyDoubtDesc"></div>
@@ -759,8 +759,8 @@ function setStatus(val) {
                     <textarea name="reply_notes" rows="5"
                         placeholder="Type your answer here... Help the student understand clearly!" required
                         style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);font-size:14px;font-family:inherit;resize:vertical"></textarea>
-                    <div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:6px">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Student will be notified via email &amp; in-app notification automatically.
+                    <div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:6px;display:flex;align-items:center;gap:4px">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Student will be notified via email &amp; in-app notification automatically.
                     </div>
                 </div>
             </div>
@@ -777,21 +777,21 @@ function setStatus(val) {
 <div class="modal-overlay" id="detailModal">
     <div class="modal" style="max-width:440px">
         <div class="modal-header">
-            <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Session Detail</div><button class="modal-close"
+            <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Session Detail</div><button class="modal-close"
                 onclick="closeModal('detailModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
         <div class="modal-body">
-            <p style="font-weight:700;margin-bottom:6px">Topic:</p>
+            <p style="font-weight:700;margin-bottom:8px;color:var(--text);font-size:13px">Topic:</p>
             <div id="dTopic"
-                style="background:var(--bg2);border-radius:var(--r);padding:10px;margin-bottom:12px;font-size:13px">
+                style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:16px;font-size:14px;border:1.5px solid #e2e8f0;font-weight:600">
             </div>
-            <p style="font-weight:700;margin-bottom:6px">Doubt Description:</p>
+            <p style="font-weight:700;margin-bottom:8px;color:var(--text);font-size:13px">Doubt Description:</p>
             <div id="dDesc"
-                style="background:var(--bg2);border-radius:var(--r);padding:10px;margin-bottom:12px;font-size:13px;min-height:32px">
+                style="background:#f8fafc;border-radius:12px;padding:12px;margin-bottom:16px;font-size:14px;border:1.5px solid #e2e8f0;min-height:32px;line-height:1.6">
             </div>
-            <p style="font-weight:700;margin-bottom:6px">Teacher's Reply:</p>
+            <p style="font-weight:700;margin-bottom:8px;color:#15803d;font-size:13px">Teacher's Reply:</p>
             <div id="dNotes"
-                style="background:#dcfce7;border-radius:var(--r);padding:10px;font-size:13px;min-height:32px;color:#15803d">
+                style="background:#f0fdf4;border-radius:12px;padding:12px;font-size:14px;min-height:32px;color:#15803d;border:1.5px solid #bbf7d0;line-height:1.6">
             </div>
         </div>
     </div>
@@ -801,7 +801,7 @@ function setStatus(val) {
 <div class="modal-overlay" id="addDoubtModal">
     <div class="modal" style="max-width:580px">
         <div class="modal-header">
-            <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Doubt Session</div><button class="modal-close"
+            <div class="modal-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Doubt Session</div><button class="modal-close"
                 onclick="closeModal('addDoubtModal')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
         <form method="POST">

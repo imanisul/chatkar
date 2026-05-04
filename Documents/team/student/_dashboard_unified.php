@@ -350,14 +350,79 @@ $myCoins = $myCoins ?? 0;
                     <div style="font-size:32px;font-weight:900;color:#4DA2FF;"><?= (int)$myCoins ?></div>
                 </div>
 
-                <!-- Streak -->
-                <div class="dash-card" style="text-align:center;padding:28px;">
-                    <div style="margin-bottom:12px;">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4DA2FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.292 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                <!-- Streak — Snapchat Style 🔥 -->
+                <?php
+                $streakHistory = $streakHistory ?? [];
+                $longestStreak = $longestStreak ?? 0;
+                $streakActive = (int)$myStreak > 0;
+                $streakBroken = !$streakActive;
+                ?>
+                <div class="dash-card" style="text-align:center;padding:28px;position:relative;overflow:hidden;">
+                    <!-- Animated glow background when active -->
+                    <?php if($streakActive && (int)$myStreak >= 3): ?>
+                    <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 30%, rgba(251,146,60,0.12) 0%, transparent 70%);pointer-events:none;"></div>
+                    <?php endif; ?>
+                    
+                    <!-- Fire icon with animation -->
+                    <div style="margin-bottom:8px;position:relative;display:inline-block;">
+                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="<?= $streakActive ? '#f97316' : '#9ca3af' ?>" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="<?= $streakActive ? 'filter:drop-shadow(0 0 8px rgba(249,115,22,0.5));animation:fireGlow 2s ease-in-out infinite;' : 'opacity:0.5;' ?>">
+                            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.292 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                        </svg>
+                        <?php if($streakActive && (int)$myStreak >= 5): ?>
+                        <div style="position:absolute;top:-2px;right:-6px;background:#ef4444;color:#fff;font-size:9px;font-weight:900;padding:2px 5px;border-radius:6px;box-shadow:0 2px 6px rgba(239,68,68,0.4);">HOT</div>
+                        <?php endif; ?>
                     </div>
-                    <div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Login Streak</div>
-                    <div style="font-size:28px;font-weight:900;color:#4DA2FF;"><?= (int)$myStreak ?> <span style="font-size:14px;font-weight:700;color:#7cbaf1;">days</span></div>
+                    
+                    <!-- Status label -->
+                    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;color:<?= $streakActive ? '#f97316' : '#9ca3af' ?>;">
+                        <?php if((int)$myStreak >= 7): ?>
+                            🔥 On Fire!
+                        <?php elseif((int)$myStreak >= 3): ?>
+                            🔥 Streak Active
+                        <?php elseif((int)$myStreak >= 1): ?>
+                            ✨ Keep Going!
+                        <?php else: ?>
+                            💔 Streak Broken
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Main streak number -->
+                    <div style="font-size:42px;font-weight:900;color:<?= $streakActive ? '#ea580c' : '#d1d5db' ?>;line-height:1;margin-bottom:2px;">
+                        <?= (int)$myStreak ?>
+                    </div>
+                    <div style="font-size:13px;font-weight:700;color:#9ca3af;margin-bottom:16px;">day<?= (int)$myStreak !== 1 ? 's' : '' ?> streak</div>
+                    
+                    <!-- 7-day history dots -->
+                    <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
+                        <?php foreach($streakHistory as $sh): ?>
+                        <div style="text-align:center;">
+                            <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;
+                                <?php if($sh['active']): ?>
+                                    background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;box-shadow:0 2px 8px rgba(249,115,22,0.3);
+                                <?php else: ?>
+                                    background:#f1f5f9;color:#cbd5e1;border:1.5px solid #e2e8f0;
+                                <?php endif; ?>
+                            ">
+                                <?= $sh['active'] ? '🔥' : '·' ?>
+                            </div>
+                            <div style="font-size:9px;font-weight:700;color:#94a3b8;margin-top:3px;"><?= $sh['day'] ?></div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <!-- Longest streak badge -->
+                    <div style="display:inline-flex;align-items:center;gap:6px;background:#fef3c7;color:#b45309;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:800;border:1px solid #fde68a;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                        Best: <?= (int)$longestStreak ?> days
+                    </div>
                 </div>
+                
+                <style>
+                @keyframes fireGlow {
+                    0%, 100% { filter: drop-shadow(0 0 6px rgba(249,115,22,0.4)); transform: scale(1); }
+                    50% { filter: drop-shadow(0 0 14px rgba(249,115,22,0.6)); transform: scale(1.05); }
+                }
+                </style>
 
                 <!-- Overall Progress -->
                 <div class="dash-card" style="padding:28px;">
