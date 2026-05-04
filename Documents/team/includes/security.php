@@ -33,13 +33,13 @@ function applySecurityHeaders(bool $allowPrint = false): void
 
     $csp = implode('; ', [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com",
         "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: blob:",
         "connect-src 'self'",
         "frame-src 'self' about: blob:",
-        "frame-ancestors 'none'",
+        "frame-ancestors 'self'",
         "base-uri 'self'",
         "form-action 'self'",
         $allowPrint ? "" : "media-src 'none'",
