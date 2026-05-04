@@ -315,24 +315,6 @@ require_once '../../includes/header.php';
                     <button type="button" class="btn btn-primary" onclick="nextStep(3)">Next: Setup & Fees <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:4px"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
                 </div>
             </div>
-                        <label>Gender</label>
-                        <select name="gender">
-                            <option value="">Select Gender</option>
-                            <option value="Male"   <?= ($_POST['gender']??'')==='Male'  ?'selected':'' ?>>Male</option>
-                            <option value="Female" <?= ($_POST['gender']??'')==='Female'?'selected':'' ?>>Female</option>
-                            <option value="Other"  <?= ($_POST['gender']??'')==='Other' ?'selected':'' ?>>Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Date of Birth</label>
-                        <input type="date" name="dob" value="<?= htmlspecialchars($_POST['dob']??'') ?>">
-                    </div>
-                    <div class="form-group">
-                        <label>Admission Date</label>
-                        <input type="date" name="admission_date" value="<?= htmlspecialchars($_POST['admission_date']??date('Y-m-d')) ?>">
-                    </div>
-                </div>
-            </div>
 
             <!-- STEP 3: SETUP & FEES -->
             <div class="wizard-step" id="step-3">
