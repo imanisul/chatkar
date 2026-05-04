@@ -217,6 +217,82 @@ if ($isTeacher) {
     } catch(Exception $e) {}
 }
 
+// ── Monthly Stats for Teacher ──────────────────────────────────────
+$monthlyStats = ['scheduled'=>0,'taken'=>0,'not_taken'=>0,'rescheduled'=>0,'unmarked'=>0];
+$totalMissed = 0; $attendancePct = 0;
+if ($isTeacher) {
+    $selMonth = $_GET['month'] ?? date('Y-m');
+    $monthStart = $selMonth . '-01';
+    $monthEnd = date('Y-m-t', strtotime($monthStart));
+    $monthName = date('F Y', strtotime($monthStart));
+
+    // Get all timetable slots for this teacher
+    $mySlots = [];
+    try {
+        $msStmt = $db->prepare("SELECT id, day, subject, class, start_time, end_time FROM timetable WHERE teacher_id=?");
+        $msStmt->execute([$user['id']]);
+        $mySlots = $msStmt->fetchAll();
+    } catch(Exception $e) {}
+
+    // Get holidays in month
+    $holidays = [];
+    try {
+        $hStmt = $db->prepare("SELECT date FROM holidays WHERE date BETWEEN ? AND ?");
+        $hStmt->execute([$monthStart, $monthEnd]);
+        $holidays = $hStmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch(Exception $e) {}
+
+    // Get approved leave dates for this teacher in month
+    $leaveDates = [];
+    try {
+        $lvStmt = $db->prepare("SELECT from_date, to_date FROM leave_requests WHERE user_id=? AND status='Approved' AND from_date <= ? AND to_date >= ?");
+        $lvStmt->execute([$user['id'], $monthEnd, $monthStart]);
+        foreach ($lvStmt->fetchAll() as $lv) {
+            $d = max($lv['from_date'], $monthStart);
+            while ($d <= min($lv['to_date'], $monthEnd)) {
+                $leaveDates[] = $d;
+                $d = date('Y-m-d', strtotime($d . ' +1 day'));
+            }
+        }
+    } catch(Exception $e) {}
+    $leaveDates = array_unique($leaveDates);
+
+    // Get all class logs for this teacher in month
+    $monthLogs = [];
+    try {
+        $mlStmt = $db->prepare("SELECT timetable_id, date, status FROM teacher_class_log WHERE teacher_id=? AND date BETWEEN ? AND ?");
+        $mlStmt->execute([$user['id'], $monthStart, $monthEnd]);
+        foreach ($mlStmt->fetchAll() as $ml) {
+            $monthLogs[$ml['timetable_id'] . '_' . $ml['date']] = $ml['status'];
+        }
+    } catch(Exception $e) {}
+
+    // Calculate expected classes per slot
+    $dayMap = ['Monday'=>1,'Tuesday'=>2,'Wednesday'=>3,'Thursday'=>4,'Friday'=>5,'Saturday'=>6,'Sunday'=>7];
+    foreach ($mySlots as $slot) {
+        $slotDay = $slot['day'];
+        $dayNum = $dayMap[$slotDay] ?? 0;
+        if (!$dayNum) continue;
+        $d = $monthStart;
+        while ($d <= $monthEnd) {
+            if ((int)date('N', strtotime($d)) === $dayNum) {
+                if (!in_array($d, $holidays) && !in_array($d, $leaveDates)) {
+                    $monthlyStats['scheduled']++;
+                    $key = $slot['id'] . '_' . $d;
+                    if (isset($monthLogs[$key])) {
+                        $monthlyStats[$monthLogs[$key]]++;
+                    } elseif ($d < date('Y-m-d')) {
+                        $monthlyStats['unmarked']++;
+                    }
+                }
+            }
+            $d = date('Y-m-d', strtotime($d . ' +1 day'));
+        }
+    }
+    $totalMissed = $monthlyStats['not_taken'] + $monthlyStats['rescheduled'] + $monthlyStats['unmarked'];
+    $attendancePct = $monthlyStats['scheduled'] > 0 ? round($monthlyStats['taken'] / $monthlyStats['scheduled'] * 100) : 0;
+}
+
 $notifCount=0;
 if ($isTeacher) { try { $nS=$db->prepare("SELECT COUNT(*) FROM notifications WHERE user_id=? AND is_read=0"); $nS->execute([$user['id']]); $notifCount=(int)$nS->fetchColumn(); } catch(Exception $e) {} }
 
@@ -311,7 +387,7 @@ $root='../../'; require_once '../../includes/header.php'; ?>
             $allTS=$db->query("SELECT u.id,u.name,
                 COUNT(DISTINCT tt.id) as weekly_slots,
                 (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken' AND tcl.date >= DATE_SUB(CURDATE(),INTERVAL 7 DAY)) as week_taken,
-                (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='not_taken') as total_missed,
+                (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
                 (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken
                 FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
                 WHERE u.role='teacher' AND u.status='active'
@@ -522,37 +598,36 @@ $root='../../'; require_once '../../includes/header.php'; ?>
     <div class="modal" style="max-width:500px">
         <div class="modal-header">
             <div class="modal-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                    style="display:inline-block;vertical-align:text-bottom;margin-right:2px">
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg> Mark Class</div><button class="modal-close" onclick="closeModal('markClassModal')"><svg
                     width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round"
-                    style="display:inline-block;vertical-align:text-bottom">
+                    stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg></button>
         </div>
-        <div class="modal-body">
         <form method="POST">
-            <?= csrfField() ?><input type="hidden" name="mark_class" value="1"><input type="hidden"
-                name="timetable_id" id="markTtId"><input type="hidden" name="log_date" id="markDate"
-                value="<?= $viewDate ?>">
+            <?= csrfField() ?>
+            <input type="hidden" name="mark_class" value="1">
+            <input type="hidden" name="timetable_id" id="markTtId">
+            <input type="hidden" name="log_date" id="markDate" value="<?= $viewDate ?>">
+            
             <div class="modal-body">
                 <div id="markClassInfo"
                     style="background:var(--blue-light);border:1.5px solid var(--blue-mid);border-radius:var(--r-sm);padding:14px;margin-bottom:18px">
                     <strong id="markSubject" style="font-size:15px"></strong> - <span id="markClass"></span>
                     <div style="font-size:12px;color:var(--text-mid);margin-top:4px" id="markTime"></div>
                 </div>
-                <div class="form-group"><label>Class Status *</label>
+                <div class="form-group">
+                    <label>Class Status *</label>
                     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
                         <label
                             style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);flex:1;transition:all .15s;background:var(--green-light);border-color:var(--green-mid)"
                             id="lbl-taken">
                             <input type="radio" name="class_status" value="taken" checked onchange="updateClassLabel()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                style="display:inline-block;vertical-align:text-bottom;margin-right:2px">
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg> Class Taken
                         </label>
@@ -561,19 +636,28 @@ $root='../../'; require_once '../../includes/header.php'; ?>
                             id="lbl-not_taken">
                             <input type="radio" name="class_status" value="not_taken" onchange="updateClassLabel()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                style="display:inline-block;vertical-align:text-bottom;margin-right:2px">
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
                             Not Taken
                         </label>
+                        <label
+                            style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);flex:1;transition:all .15s"
+                            id="lbl-rescheduled">
+                            <input type="radio" name="class_status" value="rescheduled" onchange="updateClassLabel()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                            Rescheduled
+                        </label>
                     </div>
                 </div>
                 <div class="form-group" id="topicSection">
                     <label><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                            style="display:inline-block;vertical-align:text-bottom;margin-right:2px">
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                         </svg> Topic Taught</label>
@@ -596,7 +680,6 @@ $root='../../'; require_once '../../includes/header.php'; ?>
                     </svg> Save</button>
             </div>
         </form>
-        </div>
     </div>
 </div>
 <?php endif; ?>
@@ -709,6 +792,61 @@ for ($i=0;$i<6;$i++) {
         <?php endif; ?>
     </a>
     <?php } ?>
+</div>
+
+<!-- Monthly Summary Card for Teacher -->
+<div class="card" style="margin-bottom:20px;border:2px solid var(--blue-mid);border-radius:var(--r)">
+    <div class="card-header" style="background:linear-gradient(135deg,var(--blue-light),#e0f2fe);padding:16px 20px">
+        <div class="card-title" style="color:var(--blue-deep);font-size:15px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:4px"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <?= $monthName ?? date('F Y') ?> — Class Summary
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+            <?php
+            $prevMonth = date('Y-m', strtotime(($selMonth ?? date('Y-m')) . '-01 -1 month'));
+            $nextMonth = date('Y-m', strtotime(($selMonth ?? date('Y-m')) . '-01 +1 month'));
+            $curMonth = date('Y-m');
+            ?>
+            <a href="?month=<?= $prevMonth ?>&date=<?= $viewDate ?>" class="btn btn-secondary btn-sm" style="padding:6px 10px">← Prev</a>
+            <?php if (($selMonth ?? $curMonth) !== $curMonth): ?>
+            <a href="?date=<?= $viewDate ?>" class="btn btn-secondary btn-sm" style="padding:6px 10px">Current</a>
+            <?php endif; ?>
+            <a href="?month=<?= $nextMonth ?>&date=<?= $viewDate ?>" class="btn btn-secondary btn-sm" style="padding:6px 10px">Next →</a>
+        </div>
+    </div>
+    <div class="card-body" style="padding:18px">
+        <!-- Stats Grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px;margin-bottom:16px">
+            <div style="text-align:center;background:var(--bg2);border-radius:var(--r-sm);padding:14px 8px">
+                <div style="font-weight:900;font-size:24px;color:var(--blue-deep);font-family:'Plus Jakarta Sans',sans-serif"><?= $monthlyStats['scheduled'] ?></div>
+                <div style="font-size:10px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Scheduled</div>
+            </div>
+            <div style="text-align:center;background:var(--green-light);border-radius:var(--r-sm);padding:14px 8px">
+                <div style="font-weight:900;font-size:24px;color:var(--green);font-family:'Plus Jakarta Sans',sans-serif"><?= $monthlyStats['taken'] ?></div>
+                <div style="font-size:10px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Taken</div>
+            </div>
+            <div style="text-align:center;background:var(--red-light,#fee2e2);border-radius:var(--r-sm);padding:14px 8px">
+                <div style="font-weight:900;font-size:24px;color:var(--red);font-family:'Plus Jakarta Sans',sans-serif"><?= $totalMissed ?></div>
+                <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Missed</div>
+            </div>
+            <div style="text-align:center;background:#fef3c7;border-radius:var(--r-sm);padding:14px 8px">
+                <div style="font-weight:900;font-size:24px;color:#92400e;font-family:'Plus Jakarta Sans',sans-serif"><?= $monthlyStats['rescheduled'] ?></div>
+                <div style="font-size:10px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Rescheduled</div>
+            </div>
+            <div style="text-align:center;background:var(--bg2);border-radius:var(--r-sm);padding:14px 8px">
+                <div style="font-weight:900;font-size:24px;color:var(--text-mid);font-family:'Plus Jakarta Sans',sans-serif"><?= $monthlyStats['unmarked'] ?></div>
+                <div style="font-size:10px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Unmarked</div>
+            </div>
+        </div>
+        <!-- Progress Bar -->
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-mid);min-width:90px">Attendance Rate</div>
+            <div class="progress" style="flex:1;height:10px;border-radius:99px;background:var(--bg2)">
+                <div class="progress-bar" style="width:<?= $attendancePct ?>%;background:<?= $attendancePct>=75?'var(--green)':($attendancePct>=50?'var(--amber)':'var(--red)') ?>;border-radius:99px;transition:width .5s"></div>
+            </div>
+            <span style="font-size:14px;font-weight:900;color:<?= $attendancePct>=75?'var(--green)':($attendancePct>=50?'var(--amber)':'var(--red)') ?>"><?= $attendancePct ?>%</span>
+        </div>
+    </div>
 </div>
 <?php endif; ?>
 
@@ -865,6 +1003,13 @@ foreach ($displayDays as $day):
                                 style="display:inline-block;vertical-align:text-bottom;margin-right:2px">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg> Taken</span>
+                        <?php elseif ($isMarked && $classLog && $classLog['status']==='rescheduled'): ?><span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24"><svg width="16" height="16"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round"
+                                style="display:inline-block;vertical-align:text-bottom;margin-right:2px">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg> Rescheduled</span>
                         <?php elseif ($isMarked): ?><span class="badge badge-red"><svg width="16" height="16"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                                 stroke-linecap="round" stroke-linejoin="round"
@@ -1130,6 +1275,8 @@ foreach ($displayDays as $day):
         const val = document.querySelector('input[name="class_status"]:checked')?.value;
         document.getElementById('lbl-taken').style.cssText += val === 'taken' ? ';background:var(--green-light);border-color:var(--green-mid)' : ';background:;border-color:var(--border)';
         document.getElementById('lbl-not_taken').style.cssText += val === 'not_taken' ? ';background:var(--red-light);border-color:var(--red-mid)' : ';background:;border-color:var(--border)';
+        const lblR = document.getElementById('lbl-rescheduled');
+        if (lblR) lblR.style.cssText += val === 'rescheduled' ? ';background:#fef3c7;border-color:#fbbf24' : ';background:;border-color:var(--border)';
         const ts = document.getElementById('topicSection');
         if (ts) ts.style.display = val === 'taken' ? '' : 'none';
     }
