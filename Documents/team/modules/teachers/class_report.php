@@ -31,73 +31,19 @@ if ($selTeacher) {
     }
 }
 
-// Auto-sync missing tables/columns from recent migrations to prevent crashes
-try {
-    $db->exec("CREATE TABLE IF NOT EXISTS teacher_irregularities (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        teacher_id INT NOT NULL,
-        marked_by INT DEFAULT NULL,
-        type VARCHAR(50) DEFAULT 'Late',
-        date DATE NOT NULL,
-        timetable_id INT DEFAULT NULL,
-        description TEXT,
-        severity ENUM('Low','Medium','High') DEFAULT 'Low',
-        status ENUM('Open','Resolved') DEFAULT 'Open',
-        resolved_by INT DEFAULT NULL,
-        resolved_at DATETIME DEFAULT NULL,
-        resolve_note TEXT,
-        is_lop TINYINT(1) DEFAULT 0,
-        lop_status ENUM('pending_reason','reason_submitted','confirmed','warning_issued','revoked') DEFAULT NULL,
-        lop_auto_generated TINYINT(1) DEFAULT 0,
-        login_hours_logged DECIMAL(5,2) DEFAULT NULL,
-        teacher_reason TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB");
-    
-    // Add warning_count safely
-    $db->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS warning_count INT DEFAULT 0");
-} catch(Exception $e) {}
-
 // Summary stats per teacher
-try {
-    $summaryStmt = $db->query("SELECT u.id,u.name,
-        COUNT(DISTINCT tt.id) as weekly_slots,
-        (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken,
-        (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
-        (SELECT COUNT(DISTINCT date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id) as total_days,
-        (SELECT MAX(date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as last_class_date,
-        (SELECT COUNT(*) FROM teacher_irregularities ir WHERE ir.teacher_id=u.id AND ir.is_lop=1) as total_lops,
-        (SELECT COUNT(*) FROM leave_requests lr WHERE lr.user_id=u.id AND lr.status='Approved') as total_leaves,
-        COALESCE(u.warning_count, 0) as warning_count
-        FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
-        WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
-    $summary = $summaryStmt->fetchAll();
-} catch (PDOException $e) {
-    if (strpos($e->getMessage(), 'Unknown column') !== false || strpos($e->getMessage(), 'teacher_irregularities') !== false) {
-        // Run a bullet-proof fallback query that excludes the newly migrated columns/tables
-        try {
-            $summaryStmt = $db->query("SELECT u.id,u.name,
-                COUNT(DISTINCT tt.id) as weekly_slots,
-                (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken,
-                (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
-                (SELECT COUNT(DISTINCT date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id) as total_days,
-                (SELECT MAX(date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as last_class_date,
-                0 as total_lops,
-                (SELECT COUNT(*) FROM leave_requests lr WHERE lr.user_id=u.id AND lr.status='Approved') as total_leaves,
-                0 as warning_count
-                FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
-                WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
-            $summary = $summaryStmt->fetchAll();
-            
-            // Try to patch the DB silently in the background
-            try { $db->exec("ALTER TABLE users ADD COLUMN warning_count INT DEFAULT 0"); } catch(Exception $e3) {}
-        } catch (Exception $e2) {
-            die("Critical Database Error: Even the fallback query failed. " . $e2->getMessage());
-        }
-    } else {
-        die("Database Error on Summary Query: " . $e->getMessage());
-    }
-}
+$summaryStmt = $db->query("SELECT u.id,u.name,
+    COUNT(DISTINCT tt.id) as weekly_slots,
+    (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken,
+    (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
+    (SELECT COUNT(DISTINCT date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id) as total_days,
+    (SELECT MAX(date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as last_class_date,
+    (SELECT COUNT(*) FROM teacher_irregularities ir WHERE ir.teacher_id=u.id AND ir.is_lop=1) as total_lops,
+    (SELECT COUNT(*) FROM leave_requests lr WHERE lr.user_id=u.id AND lr.status='Approved') as total_leaves,
+    COALESCE(u.warning_count, 0) as warning_count
+    FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
+    WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
+$summary = $summaryStmt->fetchAll();
 
 $root = '../../'; require_once '../../includes/header.php'; ?>
 

@@ -20,30 +20,15 @@ $monthStart = $filterMonth . '-01';
 $monthEnd   = date('Y-m-t', strtotime($monthStart));
 $monthName  = date('F Y', strtotime($monthStart));
 
-// Get all team members safely
+// Get all team members
+$teamSql = "SELECT id, name, email, role, status, phone, warning_count, created_at FROM users WHERE role IN ('teacher','mentor','marketing') AND status='active'";
 $teamParams = [];
-try {
-    $teamSql = "SELECT id, name, email, role, status, phone, warning_count, created_at FROM users WHERE role IN ('teacher','mentor','marketing') AND status='active'";
-    if ($filterRole) { $teamSql .= " AND role=?"; $teamParams[] = $filterRole; }
-    if ($filterUser) { $teamSql .= " AND id=?"; $teamParams[] = $filterUser; }
-    $teamSql .= " ORDER BY role, name";
-    $teamStmt = $db->prepare($teamSql);
-    $teamStmt->execute($teamParams);
-    $teamMembers = $teamStmt->fetchAll();
-} catch (PDOException $e) {
-    if (strpos($e->getMessage(), 'Unknown column') !== false) {
-        $teamSql = "SELECT id, name, email, role, status, phone, 0 as warning_count, created_at FROM users WHERE role IN ('teacher','mentor','marketing') AND status='active'";
-        $teamParams = [];
-        if ($filterRole) { $teamSql .= " AND role=?"; $teamParams[] = $filterRole; }
-        if ($filterUser) { $teamSql .= " AND id=?"; $teamParams[] = $filterUser; }
-        $teamSql .= " ORDER BY role, name";
-        $teamStmt = $db->prepare($teamSql);
-        $teamStmt->execute($teamParams);
-        $teamMembers = $teamStmt->fetchAll();
-    } else {
-        die("Database Error on Team Query: " . $e->getMessage());
-    }
-}
+if ($filterRole) { $teamSql .= " AND role=?"; $teamParams[] = $filterRole; }
+if ($filterUser) { $teamSql .= " AND id=?"; $teamParams[] = $filterUser; }
+$teamSql .= " ORDER BY role, name";
+$teamStmt = $db->prepare($teamSql);
+$teamStmt->execute($teamParams);
+$teamMembers = $teamStmt->fetchAll();
 
 // Aggregate data for each member
 $report = [];
