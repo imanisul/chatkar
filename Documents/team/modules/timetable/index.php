@@ -114,22 +114,29 @@ if ($canManage && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_sl
     }
 }
 
-if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_class'])) {
+if (($isTeacher || $canManage) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_class'])) {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         error_log("CSRF mismatch in timetable mark class");
         redirect("index.php?error=csrf");
     } else {
         $ttId=(int)$_POST['timetable_id']; $date=$_POST['log_date']??date('Y-m-d');
         $status=$_POST['class_status']??'taken'; $topic=sanitize($_POST['topic_taught']??''); $notes=sanitize($_POST['class_notes']??'');
-        // Security: whitelist valid statuses; only admin/mentor can set 'rescheduled'
+        // Security: whitelist valid statuses; only admin/mentor can set 'rescheduled' or 'not_taken'
         if (!in_array($status, ['taken','not_taken','rescheduled'])) $status = 'taken';
-        if ($status === 'rescheduled' && !$canManage) $status = 'not_taken';
+        if (($status === 'rescheduled' || $status === 'not_taken') && !$canManage) $status = 'taken';
         try {
-            $tt=$db->prepare("SELECT * FROM timetable WHERE id=? AND teacher_id=?"); $tt->execute([$ttId,$user['id']]);
+            if ($isTeacher) {
+                $tt=$db->prepare("SELECT * FROM timetable WHERE id=? AND teacher_id=?"); 
+                $tt->execute([$ttId,$user['id']]);
+            } else {
+                $tt=$db->prepare("SELECT * FROM timetable WHERE id=?"); 
+                $tt->execute([$ttId]);
+            }
             $ttData=$tt->fetch();
             if ($ttData) {
+                $teacherIdToLog = $isTeacher ? $user['id'] : $ttData['teacher_id'];
                 $db->prepare("INSERT INTO teacher_class_log (timetable_id,teacher_id,class,subject,date,status,topic_taught) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE status=VALUES(status),topic_taught=VALUES(topic_taught),marked_at=NOW()")
-                   ->execute([$ttId,$user['id'],$ttData['class'],$ttData['subject'],$date,$status,$topic]);
+                   ->execute([$ttId,$teacherIdToLog,$ttData['class'],$ttData['subject'],$date,$status,$topic]);
                 logActivity($user['id'],"Marked class: {$ttData['subject']} on $date as $status",'timetable');
 
                 // ── Auto-notify students when class is marked TAKEN ──────────────
@@ -596,7 +603,7 @@ $root='../../'; require_once '../../includes/header.php'; ?>
 </div>
 <?php endif; ?>
 
-<?php if ($isTeacher): ?>
+<?php if ($isTeacher || $canManage): ?>
 <div class="modal-overlay" id="markClassModal">
     <div class="modal" style="max-width:500px">
         <div class="modal-header">
@@ -634,6 +641,7 @@ $root='../../'; require_once '../../includes/header.php'; ?>
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg> Class Taken
                         </label>
+                        <?php if ($canManage): ?>
                         <label
                             style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);flex:1;transition:all .15s"
                             id="lbl-not_taken">
@@ -645,6 +653,7 @@ $root='../../'; require_once '../../includes/header.php'; ?>
                             </svg>
                             Not Taken
                         </label>
+                        <?php endif; ?>
                         <?php if ($canManage): ?>
                         <label
                             style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:12px 16px;border:1.5px solid var(--border);border-radius:var(--r-sm);flex:1;transition:all .15s"
@@ -686,6 +695,7 @@ $root='../../'; require_once '../../includes/header.php'; ?>
             </div>
         </form>
     </div>
+</div>
 </div>
 <?php endif; ?>
 
@@ -914,19 +924,18 @@ foreach ($displayDays as $day):
                 <tr>
                     <th>Time</th>
                     <th>Subject</th>
-                    <?php if ($canManage): ?>
                     <th>Class</th>
+                    <?php if ($canManage): ?>
                     <th>Teacher</th>
                     <?php endif; ?>
-                    <?php if ($isTeacher): ?>
-                    <th>Class</th>
+                    <?php if ($isTeacher || $canManage): ?>
                     <th>Topic Taught</th>
                     <th>Status</th>
                     <?php endif; ?>
                     <?php if ($canManage): ?>
                     <th>Actions</th>
                     <?php endif; ?>
-                    <?php if ($isTeacher): ?>
+                    <?php if ($isTeacher || $canManage): ?>
                     <th>Mark</th>
                     <?php endif; ?>
                 </tr>
@@ -967,10 +976,10 @@ foreach ($displayDays as $day):
                         </strong>
                         <?= $isOngoing?' <span class="badge badge-blue" style="font-size:10px;margin-left:6px"><span style="width:8px;height:8px;background:var(--red);border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle;animation:pulse 1s infinite"></span> Live</span>':'' ?>
                     </td>
-                    <?php if ($canManage): ?>
                     <td><span class="badge badge-blue">
                             <?= sanitize($slot['class']) ?>
                         </span></td>
+                    <?php if ($canManage): ?>
                     <td>
                         <?php if ($slot['teacher_name']): ?>
                         <div style="display:flex;align-items:center;gap:8px">
@@ -984,10 +993,7 @@ foreach ($displayDays as $day):
                         <?php endif; ?>
                     </td>
                     <?php endif; ?>
-                    <?php if ($isTeacher): ?>
-                    <td><span class="badge badge-blue">
-                            <?= sanitize($slot['class']) ?>
-                        </span></td>
+                    <?php if ($isTeacher || $canManage): ?>
                     <td>
                         <?php if ($classLog&&$classLog['topic_taught']): ?><span style="font-size:12.5px"><svg
                                 width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1058,7 +1064,7 @@ foreach ($displayDays as $day):
                         </div>
                     </td>
                     <?php endif; ?>
-                    <?php if ($isTeacher): ?>
+                    <?php if ($isTeacher || $canManage): ?>
                     <td><button class="btn <?= $isMarked&&$wasTaken?'btn-success':'btn-primary' ?> btn-sm"
                             style="white-space:nowrap"
                             onclick="openMarkModal(<?= $slot['id'] ?>,'<?= addslashes($slot['subject']) ?>','<?= addslashes($slot['class']) ?>','<?= date('h:i A',strtotime($slot['start_time'])) ?>','<?= date('h:i A',strtotime($slot['end_time'])) ?>','<?= addslashes($classLog['topic_taught']??'') ?>')">
