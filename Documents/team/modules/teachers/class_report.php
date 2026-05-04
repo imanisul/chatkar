@@ -31,10 +31,12 @@ if ($selTeacher) {
 $summaryStmt = $db->query("SELECT u.id,u.name,
     COUNT(DISTINCT tt.id) as weekly_slots,
     (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken,
-    (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='not_taken') as total_missed,
+    (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
     (SELECT COUNT(DISTINCT date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id) as total_days,
     (SELECT MAX(date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as last_class_date,
-    (SELECT COUNT(*) FROM teacher_irregularities ir WHERE ir.teacher_id=u.id AND ir.is_lop=1) as total_lops
+    (SELECT COUNT(*) FROM teacher_irregularities ir WHERE ir.teacher_id=u.id AND ir.is_lop=1) as total_lops,
+    (SELECT COUNT(*) FROM leave_requests lr WHERE lr.user_id=u.id AND lr.status='Approved') as total_leaves,
+    COALESCE(u.warning_count, 0) as warning_count
     FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
     WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
 $summary = $summaryStmt->fetchAll();
@@ -47,9 +49,10 @@ $root = '../../'; require_once '../../includes/header.php'; ?>
 <div class="page-header">
     <div class="page-header-left">
         <h1><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:8px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Teacher Class Report</h1>
-        <p>Detailed class attendance records for all teachers</p>
+        <p>Detailed class attendance, LOPs & leave records for all teachers</p>
     </div>
     <div class="page-header-actions" data-html2canvas-ignore="true">
+        <a href="../attendance/team_report.php" class="btn btn-secondary align-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Full Team Report</a>
         <button onclick="exportToPDF()" class="btn btn-secondary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 18 15 15"></polyline></svg> Export PDF</button>
         <button class="btn btn-secondary" onclick="window.print()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> Print</button>
     </div>
@@ -66,13 +69,20 @@ $root = '../../'; require_once '../../includes/header.php'; ?>
     <div class="card-body" style="padding:16px">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
             <div style="width:44px;height:44px;border-radius:50%;background:var(--amber-light);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:var(--amber);border:2px solid var(--amber-mid)"><?= strtoupper(substr($t['name'],0,1)) ?></div>
-            <div><strong style="font-size:14px"><?= sanitize($t['name']) ?></strong><div style="font-size:11.5px;color:var(--text-light)"><?= $t['weekly_slots'] ?> slots/week</div></div>
+            <div>
+                <strong style="font-size:14px"><?= sanitize($t['name']) ?></strong>
+                <div style="font-size:11.5px;color:var(--text-light)"><?= $t['weekly_slots'] ?> slots/week</div>
+            </div>
+            <?php if ($t['warning_count'] > 0): ?>
+            <span style="margin-left:auto;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;">⚠️ <?= $t['warning_count'] ?> Warning<?= $t['warning_count']>1?'s':'' ?></span>
+            <?php endif; ?>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:8px;margin-bottom:10px">
             <div style="text-align:center;background:var(--green-light);border-radius:var(--r-sm);padding:8px"><div style="font-weight:800;font-size:18px;color:var(--green)"><?= $t['total_taken'] ?></div><div style="font-size:10px;color:var(--green);font-weight:700">TAKEN</div></div>
             <div style="text-align:center;background:var(--red-light);border-radius:var(--r-sm);padding:8px"><div style="font-weight:800;font-size:18px;color:var(--red)"><?= $t['total_missed'] ?></div><div style="font-size:10px;color:var(--red);font-weight:700">MISSED</div></div>
             <div style="text-align:center;background:var(--blue-light);border-radius:var(--r-sm);padding:8px"><div style="font-weight:800;font-size:18px;color:var(--blue-deep)"><?= $pct ?>%</div><div style="font-size:10px;color:var(--blue-deep);font-weight:700">RATE</div></div>
             <div style="text-align:center;background:#fee2e2;border-radius:var(--r-sm);padding:8px;border:1px solid #fca5a5;"><div style="font-weight:800;font-size:18px;color:#b91c1c;"><?= $t['total_lops'] ?></div><div style="font-size:10px;color:#b91c1c;font-weight:800">LOPs</div></div>
+            <div style="text-align:center;background:#e0f2fe;border-radius:var(--r-sm);padding:8px;border:1px solid #7dd3fc;"><div style="font-weight:800;font-size:18px;color:#0369a1;"><?= $t['total_leaves'] ?></div><div style="font-size:10px;color:#0369a1;font-weight:800">LEAVES</div></div>
         </div>
         <div class="progress"><div class="progress-bar" style="width:<?= $pct ?>%;background:<?= $pct>=75?'var(--green)':($pct>=50?'var(--amber)':'var(--red)') ?>"></div></div>
         <?php if ($t['last_class_date']): ?><div style="font-size:11px;color:var(--text-light);margin-top:6px">Last class: <?= date('d M Y',strtotime($t['last_class_date'])) ?></div><?php endif; ?>
@@ -91,10 +101,12 @@ $root = '../../'; require_once '../../includes/header.php'; ?>
                 $activeTeacher = array_filter($teachers, fn($t) => $t['id'] == $selTeacher);
                 $activeTeacher = reset($activeTeacher);
             ?>
+            <?php if ($activeTeacher): ?>
             <div style="font-size:14px; color:var(--text-mid); margin-top:4px;">
                 <strong><?= sanitize($activeTeacher['name']) ?></strong> • 
                 <span style="color:var(--blue-deep)"><?= sanitize($activeTeacher['subject'] ?: 'General Subject') ?></span>
             </div>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
         <?php if ($selTeacher && $report && in_array($user['role'], ['admin', 'mentor'])): ?>
@@ -125,7 +137,15 @@ $root = '../../'; require_once '../../includes/header.php'; ?>
             <td><strong><?= sanitize($r['subject']) ?></strong></td>
             <td><span class="badge badge-blue"><?= sanitize($r['class']) ?></span></td>
             <td class="font-mono" style="font-size:12px"><?= !empty($r['start_time']) ? date('h:i A',strtotime($r['start_time'])) . ' - ' . date('h:i A',strtotime($r['end_time'])) : '<span style="color:var(--text-light)">-</span>' ?></td>
-            <td><?= $r['status']==='taken'?'<span class="badge badge-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Taken</span>':'<span class="badge badge-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Not Taken</span>' ?></td>
+            <td>
+                <?php if ($r['status']==='taken'): ?>
+                    <span class="badge badge-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="20 6 9 17 4 12"></polyline></svg> Taken</span>
+                <?php elseif ($r['status']==='rescheduled'): ?>
+                    <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fbbf24"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Rescheduled</span>
+                <?php else: ?>
+                    <span class="badge badge-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:2px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Not Taken</span>
+                <?php endif; ?>
+            </td>
             <td style="font-size:12.5px"><?= $r['topic_taught']?sanitize($r['topic_taught']):'<span style="color:var(--text-light)">-</span>' ?></td>
             <td style="font-size:12px;color:var(--text-mid)"><?= $r['notes']?sanitize($r['notes']):'-' ?></td>
         </tr>
@@ -175,7 +195,15 @@ function exportLogToPDF() {
     const element = document.getElementById('detailed-log-card');
     const opt = {
         margin:       [0.5, 0.5, 0.5, 0.5],
-        filename:     'Class_Log_<?= addslashes(preg_replace("/[^a-zA-Z0-9_\- ]/", "", $teachers[array_search($selTeacher, array_column($teachers, "id"))]["name"] ?? "Teacher")) ?>_<?= addslashes(preg_replace("/[^a-zA-Z0-9_\- ]/", "", $teachers[array_search($selTeacher, array_column($teachers, "id"))]["subject"] ?? "Undefined_Subject")) ?>.pdf',
+        <?php
+        $exportName = 'Teacher';
+        $exportSubject = 'Subject';
+        if (!empty($activeTeacher)) {
+            $exportName = preg_replace("/[^a-zA-Z0-9_\- ]/", "", $activeTeacher['name']);
+            $exportSubject = preg_replace("/[^a-zA-Z0-9_\- ]/", "", $activeTeacher['subject'] ?: 'General');
+        }
+        ?>
+        filename:     'Class_Log_<?= addslashes($exportName) ?>_<?= addslashes($exportSubject) ?>.pdf',
         image:        { type: 'jpeg', quality: 1.0 },
         html2canvas:  { scale: 4, useCORS: true, letterRendering: true, dpi: 300 },
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
