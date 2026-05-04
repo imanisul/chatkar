@@ -46,7 +46,29 @@ try {
         WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
     $summary = $summaryStmt->fetchAll();
 } catch (PDOException $e) {
-    die("Database Error on Summary Query: " . $e->getMessage());
+    if (strpos($e->getMessage(), 'Unknown column') !== false && strpos($e->getMessage(), 'warning_count') !== false) {
+        // Auto-patch the missing column on production to prevent fatal crash
+        try {
+            $db->exec("ALTER TABLE users ADD COLUMN warning_count INT DEFAULT 0");
+            // Retry the query after patching
+            $summaryStmt = $db->query("SELECT u.id,u.name,
+                COUNT(DISTINCT tt.id) as weekly_slots,
+                (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as total_taken,
+                (SELECT COUNT(*) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status IN ('not_taken','rescheduled')) as total_missed,
+                (SELECT COUNT(DISTINCT date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id) as total_days,
+                (SELECT MAX(date) FROM teacher_class_log tcl WHERE tcl.teacher_id=u.id AND tcl.status='taken') as last_class_date,
+                (SELECT COUNT(*) FROM teacher_irregularities ir WHERE ir.teacher_id=u.id AND ir.is_lop=1) as total_lops,
+                (SELECT COUNT(*) FROM leave_requests lr WHERE lr.user_id=u.id AND lr.status='Approved') as total_leaves,
+                COALESCE(u.warning_count, 0) as warning_count
+                FROM users u LEFT JOIN timetable tt ON tt.teacher_id=u.id
+                WHERE u.role='teacher' AND u.status='active' GROUP BY u.id,u.name ORDER BY u.name");
+            $summary = $summaryStmt->fetchAll();
+        } catch (Exception $e2) {
+            die("Database Auto-Patch Failed: Please run migration_auto_lop.sql on your database.");
+        }
+    } else {
+        die("Database Error on Summary Query: " . $e->getMessage());
+    }
 }
 
 $root = '../../'; require_once '../../includes/header.php'; ?>
