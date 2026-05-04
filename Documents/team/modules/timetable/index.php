@@ -121,6 +121,9 @@ if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_cl
     } else {
         $ttId=(int)$_POST['timetable_id']; $date=$_POST['log_date']??date('Y-m-d');
         $status=$_POST['class_status']??'taken'; $topic=sanitize($_POST['topic_taught']??''); $notes=sanitize($_POST['class_notes']??'');
+        // Security: whitelist valid statuses; only admin/mentor can set 'rescheduled'
+        if (!in_array($status, ['taken','not_taken','rescheduled'])) $status = 'taken';
+        if ($status === 'rescheduled' && !$canManage) $status = 'not_taken';
         try {
             $tt=$db->prepare("SELECT * FROM timetable WHERE id=? AND teacher_id=?"); $tt->execute([$ttId,$user['id']]);
             $ttData=$tt->fetch();
