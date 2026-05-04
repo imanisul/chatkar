@@ -30,6 +30,31 @@ $teamStmt = $db->prepare($teamSql);
 $teamStmt->execute($teamParams);
 $teamMembers = $teamStmt->fetchAll();
 
+// Fetch all holidays
+$holidays = [];
+try {
+    $hStmt = $db->query("SELECT date FROM holidays");
+    $holidays = $hStmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (Exception $e) {}
+
+// Helper to count workable leave days between two dates
+if (!function_exists('countLeaveDays')) {
+    function countLeaveDays($fromDate, $toDate, $holidays) {
+        $days = 0;
+        $current = strtotime($fromDate);
+        $end = strtotime($toDate);
+        while ($current <= $end) {
+            $dateStr = date('Y-m-d', $current);
+            // Skip Sunday (7) and Holidays
+            if (date('N', $current) != 7 && !in_array($dateStr, $holidays)) {
+                $days++;
+            }
+            $current = strtotime('+1 day', $current);
+        }
+        return $days;
+    }
+}
+
 // Aggregate data for each member
 $report = [];
 foreach ($teamMembers as $m) {
@@ -51,16 +76,22 @@ foreach ($teamMembers as $m) {
 
     // Leaves
     try {
-        $lStmt = $db->prepare("SELECT COUNT(*) FROM leave_requests WHERE user_id=? AND status='Approved' AND from_date >= ? AND to_date <= ?");
-        $lStmt->execute([$mid, $monthStart, $monthEnd]);
-        $data['leaves_taken'] = (int)$lStmt->fetchColumn();
+        $lStmt = $db->prepare("SELECT from_date, to_date FROM leave_requests WHERE user_id=? AND status='Approved' AND from_date <= ? AND to_date >= ?");
+        $lStmt->execute([$mid, $monthEnd, $monthStart]);
+        foreach ($lStmt->fetchAll() as $lv) {
+            $start = max($lv['from_date'], $monthStart);
+            $end = min($lv['to_date'], $monthEnd);
+            $data['leaves_taken'] += countLeaveDays($start, $end, $holidays);
+        }
 
-        $lpStmt = $db->prepare("SELECT COUNT(*) FROM leave_requests WHERE user_id=? AND status='Pending'");
+        $lpStmt = $db->prepare("SELECT from_date, to_date FROM leave_requests WHERE user_id=? AND status='Pending'");
         $lpStmt->execute([$mid]);
-        $data['leaves_pending'] = (int)$lpStmt->fetchColumn();
+        foreach ($lpStmt->fetchAll() as $lv) {
+            $data['leaves_pending'] += countLeaveDays($lv['from_date'], $lv['to_date'], $holidays);
+        }
 
-        $ldStmt = $db->prepare("SELECT from_date, to_date, reason, status FROM leave_requests WHERE user_id=? AND from_date >= ? AND to_date <= ? ORDER BY from_date DESC LIMIT 5");
-        $ldStmt->execute([$mid, $monthStart, $monthEnd]);
+        $ldStmt = $db->prepare("SELECT from_date, to_date, reason, status FROM leave_requests WHERE user_id=? AND from_date <= ? AND to_date >= ? ORDER BY from_date DESC LIMIT 5");
+        $ldStmt->execute([$mid, $monthEnd, $monthStart]);
         $data['leaves_detail'] = $ldStmt->fetchAll();
     } catch (Exception $e) {}
 

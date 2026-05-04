@@ -696,7 +696,6 @@ $root='../../'; require_once '../../includes/header.php'; ?>
         </form>
     </div>
 </div>
-</div>
 <?php endif; ?>
 
 <!-- Filters -->
