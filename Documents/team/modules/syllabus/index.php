@@ -206,24 +206,6 @@ if ($isTeacher) {
 $teachers = [];
 try { $teachers = $db->query("SELECT u.id,u.name FROM users u WHERE u.role='teacher' AND u.status='active' ORDER BY u.name")->fetchAll(); } catch(Exception $e) {}
 
-// Topics - teacher restricted to their class+subject
-$topicSql = "SELECT s.*,u.name as comp_name FROM syllabus s LEFT JOIN users u ON s.completed_by=u.id WHERE 1=1";
-$topicParams = [];
-if ($selClass)   { $topicSql.=" AND s.class=?";   $topicParams[]=$selClass; }
-if ($selSubject) { $topicSql.=" AND s.subject=?";  $topicParams[]=$selSubject; }
-// Teacher: enforce class+subject filter strictly
-if ($isTeacher && !empty($teacherClasses)) {
-    if (!$selClass) { $topicSql.=" AND s.class IN (".implode(',',array_fill(0,count($teacherClasses),'?')).")"; $topicParams = array_merge($topicParams,$teacherClasses); }
-    if (!$selSubject && !empty($teacherSubjects)) { $topicSql.=" AND s.subject IN (".implode(',',array_fill(0,count($teacherSubjects),'?')).")"; $topicParams = array_merge($topicParams,$teacherSubjects); }
-}
-$topicSql.=" ORDER BY s.subject,s.id";
-$allTopics = [];
-try { $ts=$db->prepare($topicSql); $ts->execute($topicParams); $allTopics=$ts->fetchAll(); } catch(Exception $e) {}
-
-// Group by subject
-$bySubject=[];
-foreach ($allTopics as $t) $bySubject[$t['subject']][]=$t;
-
 // Subjects for selected class (teacher: only their assigned subjects for that class)
 $subjects=[];
 if ($selClass) {
@@ -243,10 +225,13 @@ if ($selClass) {
                     UNION
                     SELECT subject FROM timetable
                     WHERE teacher_id = ? AND `class` = ? AND subject IS NOT NULL AND subject != ''
+                    UNION
+                    SELECT subject FROM teacher_subjects
+                    WHERE teacher_id = ? AND subject IS NOT NULL AND subject != ''
                 ) AS teacher_subjects_for_class
                 ORDER BY subject
             ");
-            $ss->execute([$user['id'],$selClass,$user['id'],$selClass,$user['id'],$selClass]);
+            $ss->execute([$user['id'],$selClass,$user['id'],$selClass,$user['id'],$selClass,$user['id']]);
             $subjects=$ss->fetchAll(PDO::FETCH_COLUMN);
             // Fallback: if no class-specific subjects, use all teacher subjects
             if (empty($subjects)) $subjects = $teacherSubjects;
@@ -257,13 +242,44 @@ if ($selClass) {
     } catch(Exception $e) {}
 }
 
+// Topics - teacher restricted to their class+subject
+$topicSql = "SELECT s.*,u.name as comp_name FROM syllabus s LEFT JOIN users u ON s.completed_by=u.id WHERE 1=1";
+$topicParams = [];
+if ($selClass)   { $topicSql.=" AND s.class=?";   $topicParams[]=$selClass; }
+if ($selSubject) { $topicSql.=" AND s.subject=?";  $topicParams[]=$selSubject; }
+// Teacher: enforce class+subject filter strictly
+if ($isTeacher) {
+    if (!$selClass && !empty($teacherClasses)) { 
+        $topicSql.=" AND s.class IN (".implode(',',array_fill(0,count($teacherClasses),'?')).")"; 
+        $topicParams = array_merge($topicParams,$teacherClasses); 
+    }
+    if (!$selSubject) { 
+        if ($selClass && !empty($subjects)) {
+            // Restrict to class-specific subjects
+            $topicSql.=" AND s.subject IN (".implode(',',array_fill(0,count($subjects),'?')).")"; 
+            $topicParams = array_merge($topicParams,$subjects);
+        } elseif (!$selClass && !empty($teacherSubjects)) {
+            // Fallback to all their subjects if no class selected
+            $topicSql.=" AND s.subject IN (".implode(',',array_fill(0,count($teacherSubjects),'?')).")"; 
+            $topicParams = array_merge($topicParams,$teacherSubjects);
+        }
+    }
+}
+$topicSql.=" ORDER BY s.subject,s.id";
+$allTopics = [];
+try { $ts=$db->prepare($topicSql); $ts->execute($topicParams); $allTopics=$ts->fetchAll(); } catch(Exception $e) {}
+
+// Group by subject
+$bySubject=[];
+foreach ($allTopics as $t) $bySubject[$t['subject']][]=$t;
+
 // Chapters (teacher restricted)
 $chapters=[];
 if ($selClass) {
     $cSql="SELECT c.*,u.name as teacher_name,cb.name as comp_name FROM chapters c LEFT JOIN users u ON c.teacher_id=u.id LEFT JOIN users cb ON c.completed_by=cb.id WHERE c.class=?";
     $cParams=[$selClass];
     if ($selSubject) { $cSql.=" AND c.subject=?"; $cParams[]=$selSubject; }
-    if ($isTeacher && !empty($teacherSubjects)) { $cSql.=" AND c.subject IN (".implode(',',array_fill(0,count($teacherSubjects),'?')).")"; $cParams=array_merge($cParams,$teacherSubjects); }
+    if ($isTeacher && !$selSubject && !empty($subjects)) { $cSql.=" AND c.subject IN (".implode(',',array_fill(0,count($subjects),'?')).")"; $cParams=array_merge($cParams,$subjects); }
     $cSql.=" ORDER BY c.subject,c.chapter_order,c.id";
     try { $cs=$db->prepare($cSql); $cs->execute($cParams); $chapters=$cs->fetchAll(); } catch(Exception $e) {}
 }
