@@ -253,9 +253,6 @@ function updateStreak(PDO $db, int $studentId): array
         $tz = new DateTimeZone('Asia/Kolkata');
         $todayDt = new DateTime('now', $tz);
         $today = $todayDt->format('Y-m-d');
-        
-        $yesterdayDt = new DateTime('yesterday', $tz);
-        $yesterday = $yesterdayDt->format('Y-m-d');
 
         // Upsert into student_streaks
         $q = $db->prepare("SELECT * FROM student_streaks WHERE student_id=?");
@@ -272,45 +269,50 @@ function updateStreak(PDO $db, int $studentId): array
         $last = $row['last_activity_date'];
 
         if ($last === $today) {
-            // Already updated today
+            // Already updated today — return current values
             return [(int)$row['current_streak'], (int)$row['longest_streak']];
         }
 
-        if ($last === $yesterday) {
-            // Consecutive day — increment
-            $newCurrent = (int)$row['current_streak'] + 1;
-            $newLongest = max($newCurrent, (int)$row['longest_streak']);
-        } else {
-            // Check if missed days had any activity (backfill streaks from attendance etc.)
-            // Walk backwards from yesterday to last_activity_date to find continuous activity
-            $checkDate = new DateTime($yesterday, $tz);
-            $lastDate = new DateTime($last, $tz);
-            $streakFromYesterday = 0;
-            
-            while ($checkDate > $lastDate) {
-                $dateStr = $checkDate->format('Y-m-d');
-                if (studentHadActivityOnDate($db, $studentId, $dateStr)) {
-                    $streakFromYesterday++;
-                    $checkDate->modify('-1 day');
-                } else {
-                    break;
-                }
+        // Walk backwards from yesterday to find the continuous activity chain
+        // This covers: direct yesterday, or days we missed logging but had attendance/quiz/etc.
+        $currentStoredStreak = (int)$row['current_streak'];
+        $storedLongest = (int)$row['longest_streak'];
+
+        $checkDate = clone $todayDt;
+        $checkDate->modify('-1 day');
+        $lastDate = new DateTime($last, $tz);
+        $consecutiveDaysBack = 0;
+
+        // Walk backwards from yesterday, checking each date for activity
+        while ($checkDate >= $lastDate) {
+            $dateStr = $checkDate->format('Y-m-d');
+
+            // If this date IS the last_activity_date, it was already counted in the stored streak
+            if ($dateStr === $last) {
+                // Chain connects back to last known activity — extend stored streak
+                $consecutiveDaysBack += $currentStoredStreak;
+                break;
             }
-            
-            if ($streakFromYesterday > 0 && $checkDate->format('Y-m-d') <= $last) {
-                // There's a continuous chain from yesterday back to last_activity_date
-                $newCurrent = (int)$row['current_streak'] + $streakFromYesterday + 1;
-                $newLongest = max($newCurrent, (int)$row['longest_streak']);
-            } elseif ($streakFromYesterday > 0) {
-                // Continuous from yesterday but gap before that — start new streak
-                $newCurrent = $streakFromYesterday + 1; // +1 for today
-                $newLongest = max($newCurrent, (int)$row['longest_streak']);
+
+            // Check if the student had any trackable activity on this date
+            if (studentHadActivityOnDate($db, $studentId, $dateStr)) {
+                $consecutiveDaysBack++;
+                $checkDate->modify('-1 day');
             } else {
-                // No activity yesterday — streak broken, reset
-                $newCurrent = 1;
-                $newLongest = (int)$row['longest_streak'];
+                // Gap found — chain is broken here
+                break;
             }
         }
+
+        if ($consecutiveDaysBack > 0) {
+            // +1 for today's login/activity
+            $newCurrent = $consecutiveDaysBack + 1;
+        } else {
+            // No activity yesterday at all — streak broken, start fresh
+            $newCurrent = 1;
+        }
+
+        $newLongest = max($newCurrent, $storedLongest);
 
         $db->prepare("UPDATE student_streaks SET current_streak=?, longest_streak=?, last_activity_date=? WHERE student_id=?")
             ->execute([$newCurrent, $newLongest, $today, $studentId]);

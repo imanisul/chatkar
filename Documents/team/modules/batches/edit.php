@@ -627,10 +627,14 @@ const currentBatchTeachers = <?= json_encode($currentBatchTeachers) ?>;
 
                         // Also fire AJAX when class is changed to refresh data
                         if (classSelect.value) {
-                            // Silently fetch class data in background to populate chapters for syllabus preview
+                            // Fetch class data in background to populate chapters for syllabus preview
                             fetch(`ajax_get_class_data.php?class=${encodeURIComponent(classSelect.value)}`)
                                 .then(r => r.json())
-                                .then(data => { classData = data; })
+                                .then(data => { 
+                                    classData = data; 
+                                    // Re-render syllabus preview & teacher assignments now that chapters data is loaded
+                                    updateDynamicAreas(); 
+                                })
                                 .catch(() => {});
                         }
                     </script>
