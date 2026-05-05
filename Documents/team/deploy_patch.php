@@ -144,6 +144,39 @@ if ($content4 && strlen($content4) > 1000) {
     }
 }
 
+// ═══════════════════════════════════════════
+// PATCH 5: modules/quiz/index.php (Teacher quiz restrictions)
+// ═══════════════════════════════════════════
+$file5 = __DIR__ . '/modules/quiz/index.php';
+echo "📄 Patching modules/quiz/index.php...\n";
+
+$url5 = 'https://raw.githubusercontent.com/imanisul/chatkar/main/Documents/team/modules/quiz/index.php';
+$content5 = @file_get_contents($url5);
+if (!$content5 || strlen($content5) < 1000) {
+    $url5b = 'https://raw.githubusercontent.com/imanisul/chatkar/main/modules/quiz/index.php';
+    $content5 = @file_get_contents($url5b);
+}
+
+if ($content5 && strlen($content5) > 1000) {
+    if (file_put_contents($file5, $content5)) {
+        echo "   ✅ SUCCESS — Teacher quiz restrictions applied (" . strlen($content5) . " bytes)\n\n";
+    } else {
+        echo "   ❌ FAILED — Could not write file\n\n";
+    }
+} else {
+    // Inline fallback
+    if (file_exists($file5)) {
+        $c5 = file_get_contents($file5);
+        if (strpos($c5, 'teacher_subjects') !== false) {
+            echo "   ✅ ALREADY PATCHED — Multi-source teacher filtering exists\n\n";
+        } else {
+            echo "   ⚠️ Could not download from GitHub — manual patch needed\n\n";
+        }
+    } else {
+        echo "   ❌ File not found: $file5\n\n";
+    }
+}
+
 echo str_repeat('─', 60) . "\n";
 echo "🏁 DONE — All patches attempted.\n";
 echo "⚠️  DELETE THIS FILE (deploy_patch.php) NOW!\n";
