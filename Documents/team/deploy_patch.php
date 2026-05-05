@@ -209,6 +209,29 @@ if ($content6 && strlen($content6) > 1000) {
     }
 }
 
+// ═══════════════════════════════════════════
+// PATCH 7: modules/attendance/index.php (Teacher subject restrictions in attendance)
+// ═══════════════════════════════════════════
+$file7 = __DIR__ . '/modules/attendance/index.php';
+echo "📄 Patching modules/attendance/index.php...\n";
+
+$url7 = 'https://raw.githubusercontent.com/imanisul/chatkar/main/Documents/team/modules/attendance/index.php';
+$content7 = @file_get_contents($url7);
+if (!$content7 || strlen($content7) < 1000) {
+    $url7b = 'https://raw.githubusercontent.com/imanisul/chatkar/main/modules/attendance/index.php';
+    $content7 = @file_get_contents($url7b);
+}
+
+if ($content7 && strlen($content7) > 1000) {
+    if (file_put_contents($file7, $content7)) {
+        echo "   ✅ SUCCESS — Teacher attendance subject restrictions applied (" . strlen($content7) . " bytes)\n\n";
+    } else {
+        echo "   ❌ FAILED — Could not write file\n\n";
+    }
+} else {
+    echo "   ❌ FAILED — Could not download from GitHub\n\n";
+}
+
 echo str_repeat('─', 60) . "\n";
 echo "🏁 DONE — All patches attempted.\n";
 echo "⚠️  DELETE THIS FILE (deploy_patch.php) NOW!\n";
