@@ -177,6 +177,38 @@ if ($content5 && strlen($content5) > 1000) {
     }
 }
 
+// ═══════════════════════════════════════════
+// PATCH 6: modules/quiz/quiz_builder.php (Teacher subject restrictions in smart builder)
+// ═══════════════════════════════════════════
+$file6 = __DIR__ . '/modules/quiz/quiz_builder.php';
+echo "📄 Patching modules/quiz/quiz_builder.php...\n";
+
+$url6 = 'https://raw.githubusercontent.com/imanisul/chatkar/main/Documents/team/modules/quiz/quiz_builder.php';
+$content6 = @file_get_contents($url6);
+if (!$content6 || strlen($content6) < 1000) {
+    $url6b = 'https://raw.githubusercontent.com/imanisul/chatkar/main/modules/quiz/quiz_builder.php';
+    $content6 = @file_get_contents($url6b);
+}
+
+if ($content6 && strlen($content6) > 1000) {
+    if (file_put_contents($file6, $content6)) {
+        echo "   ✅ SUCCESS — Teacher quiz builder restrictions applied (" . strlen($content6) . " bytes)\n\n";
+    } else {
+        echo "   ❌ FAILED — Could not write file\n\n";
+    }
+} else {
+    if (file_exists($file6)) {
+        $c6 = file_get_contents($file6);
+        if (strpos($c6, 'teacher_subjects') !== false) {
+            echo "   ✅ ALREADY PATCHED — Multi-source teacher filtering exists\n\n";
+        } else {
+            echo "   ⚠️ Could not download from GitHub — manual patch needed\n\n";
+        }
+    } else {
+        echo "   ❌ File not found: $file6\n\n";
+    }
+}
+
 echo str_repeat('─', 60) . "\n";
 echo "🏁 DONE — All patches attempted.\n";
 echo "⚠️  DELETE THIS FILE (deploy_patch.php) NOW!\n";
