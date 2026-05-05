@@ -111,6 +111,39 @@ if ($content3 && strlen($content3) > 500) {
     echo "\n";
 }
 
+// ═══════════════════════════════════════════
+// PATCH 4: modules/syllabus/index.php (Teacher subject restriction)
+// ═══════════════════════════════════════════
+$file4 = __DIR__ . '/modules/syllabus/index.php';
+echo "📄 Patching modules/syllabus/index.php...\n";
+
+$url4 = 'https://raw.githubusercontent.com/imanisul/chatkar/main/Documents/team/modules/syllabus/index.php';
+$content4 = @file_get_contents($url4);
+if (!$content4 || strlen($content4) < 1000) {
+    $url4b = 'https://raw.githubusercontent.com/imanisul/chatkar/main/modules/syllabus/index.php';
+    $content4 = @file_get_contents($url4b);
+}
+
+if ($content4 && strlen($content4) > 1000) {
+    if (file_put_contents($file4, $content4)) {
+        echo "   ✅ SUCCESS — Teacher subject restriction applied (" . strlen($content4) . " bytes)\n\n";
+    } else {
+        echo "   ❌ FAILED — Could not write file\n\n";
+    }
+} else {
+    // Inline fallback: check if the old single-source query exists
+    if (file_exists($file4)) {
+        $c4 = file_get_contents($file4);
+        if (strpos($c4, 'batch_teachers') !== false) {
+            echo "   ✅ ALREADY PATCHED — Multi-source teacher filtering exists\n\n";
+        } else {
+            echo "   ⚠️ Could not download from GitHub — manual patch needed\n\n";
+        }
+    } else {
+        echo "   ❌ File not found: $file4\n\n";
+    }
+}
+
 echo str_repeat('─', 60) . "\n";
 echo "🏁 DONE — All patches attempted.\n";
 echo "⚠️  DELETE THIS FILE (deploy_patch.php) NOW!\n";
